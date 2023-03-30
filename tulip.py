@@ -75,7 +75,7 @@ def run():
     # Split input text into chunks to fit within max token window
     max_tokens = 1570  # Maximum number of tokens the GPT model can handle at once
     if len(input_text) > max_tokens:
-        log.info(f"Warning: input is to big, we will split processing in chunks of less than {max_tokens}")
+        log.warning(f"Warning: input is to big, we will split processing in chunks of less than {max_tokens}")
     input_lines = input_text.splitlines()
     # try to split it in lines or max_size
     compressed_lines = [""]
@@ -116,8 +116,8 @@ def run():
                     temperature=0
                 )
                 for req in request:
-                    log.info(f"REQ: {req}")
-                log.info(f"ANS: {response}")
+                    log.debug(f"REQ: {req}")
+                log.debug(f"ANS: {response}")
                 response_text += response.choices[0].message.content
             else:
                 response_text += f"(#output)\nsimulated request"
@@ -145,8 +145,8 @@ def run():
 
 
         if "(#error)" in blocks_dict:
-            log.info("Error: Couldn't process your request:")
-            log.info(blocks_dict["(#error)"])
+            log.error("Error: Couldn't process your request:")
+            log.error(blocks_dict["(#error)"])
             sys.exit(1)
         elif "(#output)" in blocks_dict:
             print(blocks_dict["(#output)"])
@@ -155,8 +155,8 @@ def run():
             else:
                 prev_context = None
         else:
-            log.info("Unknown error while processing, try with a different request, model response:")
-            log.info(response_text)
+            log.error("Unknown error while processing, try with a different request, model response:")
+            log.error(response_text)
             sys.exit(2)
 
 if __name__ == "__main__":

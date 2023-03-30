@@ -1,8 +1,8 @@
 from setuptools import setup, find_packages
 
 setup(
-    name='tulip',
-    version='0.1',
+    name='pytulip',
+    version='0.2.1',
     py_modules=("tulip","tuliplogger", "requestPrompt", "filteringPrompt"),
     install_requires=[
         'openai',
