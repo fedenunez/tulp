@@ -11,17 +11,23 @@ pip install pytulip
 ## Usage:
 
 TULIP has 2 main operations modes:
-1 stdin processing: Process or filter all the stdin input according to the user instructions:
+
+1. stdin processing: Process or filter all the stdin input according to the user instructions:
 ```
 cat [MYFILE] | tulip [Processing instructions written in natural language]
 ```
-2 request: Process the user request:
+2. request: Process the user request:
 ```
 tulip [A written request or question]
 ```
-In both cases, TULIP will write to the standard result chatGPT answers and will write any other information to the standard error.
+In both cases, TULIP will write to the standard output the answers and will write any other information to the standard error.
 
-**NOTE**: You should define you OPENAI_API_KEY into the environment.
+It is important to note that if your input is larger than 1500 characters, the input will be split into multiple requests and the results may vary. It works great when the input is less than that.
+
+
+**Environment variables**:
+- You should define your `OPENAI_API_KEY`.
+- You may define `LOG_LEVEL` to `DEBUG` or `INFO` in order to inspect what is going on.
 
 ### Examples:
 The usage is endless, but anyway, here you have some ideas as inspirations:
@@ -98,10 +104,9 @@ Sue,4
 
 
 ## Origin of the name
+I used ```tulip.py``` to create "TULIP". In some way, everything is recursive in "TULIP", so it makes sense to use a recursive acronym.
 
-TULIP is a recursive acronym, as I used TULIP to create TULIP in some way everything is recursive in TULIP so it make sense to use a recursive acronym.
-
-That why, after some iterations with tulip, tulip and I decided that the best name will be tulip, and this is how we decided what TULIP stand for:
+Therefore, after several iterations with ```tulip.py```, "TULIP" and I decided that the best name would be "TULIP", and this is how we decided what "TULIP" stands for:
 ```
 fede@liebre:~/repos/openai/tulip$ python3 ./tulip.py "TULIP is a recursive acronym naming an opensource posix tool that process stdin input according to natural language instructions, processing the input by instructing an artificial intelligence. Write some options of what TULIP could stand for as recursive acronym"
 TULIP could stand for:
@@ -116,4 +121,4 @@ TULIP could stand for:
 
 ## Why?
 
-I think that I am a heavy user of unix tooling (e.g: awk, jq, sed, grep and so one), I have been using them since my early days and I use to thing that I can't survive without them. But then, chatGPT appears and I started to use more and more GPT for things that I use to use unix tooling. Some how I feel the pain of cut&paste and I was missing a way to doit faster and from within the terminal itself, so I came up with tulip, the swifknife for all my work. 
+I am a heavy user of unix tooling (e.g: awk, jq, sed, grep and so one), I have been using them since my early days and I use to thing that I can't survive without them. But then, chatGPT appears and I started to use more and more GPT for things that I use to use unix tooling. Some how I feel the pain of cut&paste and I was missing a way to doit faster and from within the terminal itself, so I came up with ```tulip```
