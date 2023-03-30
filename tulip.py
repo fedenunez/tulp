@@ -73,7 +73,7 @@ def run():
 
     user_messages=[]
     # Split input text into chunks to fit within max token window
-    max_tokens = 1570  # Maximum number of tokens the GPT model can handle at once
+    max_tokens = 5000  # Maximum number of tokens the GPT model can handle at once
     if len(input_text) > max_tokens:
         log.warning(f"Warning: input is to big, we will split processing in chunks of less than {max_tokens}")
     input_lines = input_text.splitlines()
