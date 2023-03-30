@@ -1,9 +1,9 @@
-from setuptools import setup
+from setuptools import setup, find_packages
 
 setup(
     name='tulip',
     version='0.1',
-    py_modules=['tulip'],
+    py_modules=("tulip","tuliplogger", "requestPrompt", "filteringPrompt"),
     install_requires=[
         'openai',
     ],
@@ -21,6 +21,6 @@ A command line tool, in the best essence of POSIX tooling, that will help you to
     },
     entry_points='''
         [console_scripts]
-        tulip=tulip:__main__
+        tulip=tulip:run
     ''',
 )
