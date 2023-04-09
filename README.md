@@ -1,11 +1,11 @@
-# TULP: TULP Understands Language Instructions Promptly
+# TULP: TULP Understands Language Perfectly
 
 A command line tool, in the best essence of POSIX tooling, that will help you to **process**, **filter**, and **create** data in this new Artificial Intelligence world, backed by chatGPT.
 
 ## Installation:
 
 ```
-pip install pytulp
+pip install tulp
 ``` 
 
 
@@ -129,11 +129,11 @@ Therefore, after several iterations with ```tulp.py```, "TULP" and I decided tha
 ```
 fede@liebre:~/repos/openai/tulp$ python3 ./tulp.py "TULP is a recursive acronym naming an opensource posix tool that process stdin input according to natural language instructions, processing the input by instructing an artificial intelligence. Write some options of what TULP could stand for as recursive acronym"
 TULP could stand for:
-- TULP Understands Language Instructions Perfectly
-- TULP Uses Language Instructions to Process
-- TULP Understands Language Input Promptly
-- TULP Utilizes Language Instructions for Processing
-- TULP Unravels Language Instructions Precisely
+- TULP Understands Language Perfectly
+- TULP Uses Language to Process
+- TULP Understands Language Promptly
+- TULP Utilizes Language for Processing
+- TULP Unravels Language Precisely
 ```
 
 
