@@ -2,11 +2,13 @@
 
 A command line tool, in the best essence of POSIX tooling, that will help you to **process**, **filter**, and **create** data in this new Artificial Intelligence world, backed by chatGPT.
 
-## Instalation:
+## Installation:
 
 ```
 pip install pytulip
 ``` 
+
+
 
 ## Usage:
 
@@ -24,37 +26,54 @@ In both cases, TULIP will write to the standard output the answers and will writ
 
 It is important to note that if your input is larger than 5000 characters, the input will be split into multiple requests and the results may vary. It works great when the input is less than that.
 
+## Configuration 
+The configuration file is located at ~/.tulip.conf. Define your own ~/.tulip.conf file or define the same environment variable but using prefix TULIP. 
 
-**Environment variables**:
-- You should define your `OPENAI_API_KEY`.
-- You may define `LOG_LEVEL` to `DEBUG` or `INFO` in order to inspect what is going on.
+The following are the parameters that can be configured:
+- LOG_LEVEL: The log level of Tulip. Valid options are DEBUG, INFO, WARNING, ERROR, and CRITICAL. The default value is INFO.
+- OPENAI_API_KEY: The API key for OpenAI. The default value is an empty string.
+- CHAR_LIMIT: The maximum number of characters processed in one chunk. The default value is 5000.
+- MODEL: The openai model used by Tulip. The default value is gpt-3.5-turbo, but gpt-4 is also available
 
-### Examples:
+As environment variables they will become: TULIP_LOG_LEVEL, TULIP_OPENAI_API_KEY, TULIP_CHAR_LIMIT or TULIP_MODEL
+
+Here is an example configuration file with the default values:
+```
+[DEFAULT]
+LOG_LEVEL = INFO
+OPENAI_API_KEY = <<<YOUR API KEY >>>>
+CHAR_LIMIT = 5000
+MODEL = gpt-3.5-turbo
+```
+## Examples:
 The usage is endless, but anyway, here you have some ideas as inspirations:
-#### Typical Unix tooling replacement:
-##### Sed
+### Typical Unix tooling replacement:
+#### Sed
 ```
 cat README.md | tulip replace all the occurrences of TULIP for **TULIP**
 ```
-##### Awk
+#### Awk
 ```
 cat README.md | tulip print the second word of each line
 ```
-##### grep, but advanced
+#### grep, but advanced
 ```
 cat tulip.py | tulip print the name of the functions and also the return line 
 ```
 
-#### Grammatical and syntax corrections:
+### Grammatical and syntax corrections:
 ```
 cat README.md | tulip fix any grammatical or syntactical error > README.md.fixed
 ```
 
-#### Translations
+Or even better:
+cat README.md | TULIP_MAX_CHARS=10000 TULIP_MODEL=gpt-4 tulip fix typos and syntax errors > README.fix.md
+
+### Translations
 cat README.md | tulip translate to Spanish > README.es.md
 
-#### Data filtering from formatted input
-##### csv
+### Data filtering from formatted input
+#### csv
 ```
 cat list.csv | tulip print only the second column
 Count
@@ -63,12 +82,12 @@ Count
 2
 
 ```
-#### csv
+### csv
 ```
-cat persons.json | tulip 'list the names an ages of each person in a csv table, using ; as separator'
+cat persons.json | tulip 'list the names and ages of each person in a csv table, using ; as separator'
 
 ```
-#### Data creation and extraction from unstructured data (a story of oranges and friends):
+### Data creation and extraction from unstructured data (a story of oranges and friends):
 ```
 fede@liebre:~/repos/tulip$ tulip write a poem that names 3 persons \(given each a name\) and list how they shared 10 oranges | tee examples/oranges_poem.txt
 Roses are red,
@@ -121,4 +140,4 @@ TULIP could stand for:
 
 ## Why?
 
-I am a heavy user of unix tooling (e.g: awk, jq, sed, grep and so one), I have been using them since my early days and I use to thing that I can't survive without them. But then, chatGPT appears and I started to use more and more GPT for things that I use to use unix tooling. Some how I feel the pain of cut&paste and I was missing a way to doit faster and from within the terminal itself, so I came up with ```tulip```
+I am a heavy user of unix tooling (e.g: awk, jq, sed, grep and so on), I have been using them since my early days and I use to think that I can't survive without them. But then, chatGPT appears and I started to use more and more GPT for things that I use to use unix tooling. Somehow I feel the pain of cut&paste and I was missing a way to do it faster and from within the terminal itself, so I came up with ```tulip```

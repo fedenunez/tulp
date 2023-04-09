@@ -5,24 +5,16 @@ import sys
 import os
 import math
 import tuliplogger
+import tulipconfig
 
+log = tuliplogger.Logger()
+config = tulipconfig.TulipConfig()
 
 def run():
-    log = tuliplogger.Logger()
 
-    def get_openai_key():
-        key = os.environ.get('OPENAI_API_KEY')
-        if key:
-            return key.strip()
-        try:
-            with open(os.path.expanduser('~/.gptcli.conf')) as f:
-                return f.readline().strip()
-        except:
-            return None
-
-    openai_key = get_openai_key()
+    openai_key = config.openai_api_key
     if not openai_key:
-        print('OpenAI API key not found. Please set the OPENAI_API_KEY environment variable or add it to ~/.gptcli.conf')
+        log.error(f'OpenAI API key not found. Please set the TULIP_OPENAI_API_KEY environment variable or add it to {tulipconfig.CONFIG_FILE}')
         sys.exit(1)
 
     openai.api_key = openai_key
@@ -73,9 +65,9 @@ def run():
 
     user_messages=[]
     # Split input text into chunks to fit within max token window
-    max_tokens = 5000  # Maximum number of tokens the GPT model can handle at once
-    if len(input_text) > max_tokens:
-        log.warning(f"Warning: input is to big, we will split processing in chunks of less than {max_tokens}")
+    max_chars = config.max_chars  # Maximum number of chars that we will send to GPT
+    if len(input_text) > max_chars:
+        log.warning(f"Warning: input is to big, we will split processing in chunks of less than {max_chars}")
     input_lines = input_text.splitlines()
     # try to split it in lines or max_size
     compressed_lines = [""]
@@ -83,15 +75,15 @@ def run():
     for iline in input_lines:
         compresed_index = len(compressed_lines) - 1
         clen = len(compressed_lines[compresed_index]) 
-        if clen + len(iline) < max_tokens:
+        if clen + len(iline) < max_chars:
             compressed_lines[compresed_index] += iline + "\n"
         else:
             if clen != 0:
-                if (len(iline) < max_tokens):
+                if (len(iline) < max_chars):
                     compressed_lines.append(iline + "\n")
                 else:
-                    for i in range(0,math.floor(iline)/max_tokens+1):
-                        input_chunk = iline[i*max_tokens:(i+1)*max_tokens] 
+                    for i in range(0,math.floor(iline)/max_chars+1):
+                        input_chunk = iline[i*max_chars:(i+1)*max_chars] 
                         compressed_lines.append(input_chunk)
                     compressed_lines[compresed_index] += "\n"
 
@@ -109,10 +101,8 @@ def run():
             if True:
                 request.append(message)
                 response = openai.ChatCompletion.create(
-                    #model="gpt-4", 
-                    model="gpt-3.5-turbo",
+                    model=config.model,
                     messages=request,
-                    #max_tokens=max_tokens,
                     temperature=0
                 )
                 for req in request:

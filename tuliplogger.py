@@ -1,9 +1,12 @@
 import os
 import sys
+import tulipconfig
+
+config = tulipconfig.TulipConfig()
 
 class Logger:
     def __init__(self):
-        self.log_level = os.environ.get('LOG_LEVEL', 'WARNING')
+        self.log_level = config.log_level
 
     def error(self, message):
         if self.log_level in ['ERROR', 'WARNING', 'INFO', 'DEBUG']:
