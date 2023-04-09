@@ -4,17 +4,17 @@ import argparse
 import sys
 import os
 import math
-import tuliplogger
-import tulipconfig
+import tulplogger
+import tulpconfig
 
-log = tuliplogger.Logger()
-config = tulipconfig.TulipConfig()
+log = tulplogger.Logger()
+config = tulpconfig.TulipConfig()
 
 def run():
 
     openai_key = config.openai_api_key
     if not openai_key:
-        log.error(f'OpenAI API key not found. Please set the TULIP_OPENAI_API_KEY environment variable or add it to {tulipconfig.CONFIG_FILE}')
+        log.error(f'OpenAI API key not found. Please set the TULP_OPENAI_API_KEY environment variable or add it to {tulpconfig.CONFIG_FILE}')
         sys.exit(1)
 
     openai.api_key = openai_key
