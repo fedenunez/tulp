@@ -1,6 +1,6 @@
 import os
 import sys
-import tulpconfig
+import tulp.tulpconfig as tulpconfig
 
 config = tulpconfig.TulipConfig()
 

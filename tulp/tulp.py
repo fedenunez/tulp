@@ -4,14 +4,16 @@ import argparse
 import sys
 import os
 import math
-import tulplogger
-import tulpconfig
+import tulp.tulplogger as tulplogger
+import tulp.tulpconfig as tulpconfig
+import tulp.version as version
 
 log = tulplogger.Logger()
 config = tulpconfig.TulipConfig()
 
 def run():
 
+    log.info(f"Running tulp v{version.VERSION}.")
     openai_key = config.openai_api_key
     if not openai_key:
         log.error(f'OpenAI API key not found. Please set the TULP_OPENAI_API_KEY environment variable or add it to {tulpconfig.CONFIG_FILE}')
@@ -57,17 +59,17 @@ def run():
 
     instructionFunction=None
     if instructions:
-        import filteringPrompt
-        instructionFunction=filteringPrompt.getBaseMessages
+        import tulp.filteringPrompt
+        instructionFunction=tulp.filteringPrompt.getBaseMessages
     else:
-        import requestPrompt
-        instructionFunction=requestPrompt.getBaseMessages
+        import tulp.requestPrompt
+        instructionFunction=tulp.requestPrompt.getBaseMessages
 
     user_messages=[]
     # Split input text into chunks to fit within max token window
     max_chars = config.max_chars  # Maximum number of chars that we will send to GPT
     if len(input_text) > max_chars:
-        log.warning(f"Warning: input is to big, we will split processing in chunks of less than {max_chars}")
+        log.warning(f"Warning: input is to big, we will split processing in chunks of less than {max_chars}. You may use the TULP_MAX_CHARS env variable to control the size of the processing chunk size.")
     input_lines = input_text.splitlines()
     # try to split it in lines or max_size
     compressed_lines = [""]
@@ -82,7 +84,7 @@ def run():
                 if (len(iline) < max_chars):
                     compressed_lines.append(iline + "\n")
                 else:
-                    for i in range(0,math.floor(iline)/max_chars+1):
+                    for i in range(0,math.floor(len(iline)/max_chars)+1):
                         input_chunk = iline[i*max_chars:(i+1)*max_chars] 
                         compressed_lines.append(input_chunk)
                     compressed_lines[compresed_index] += "\n"

@@ -32,17 +32,17 @@ The configuration file is located at ~/.tulp.conf. Define your own ~/.tulp.conf 
 The following are the parameters that can be configured:
 - LOG_LEVEL: The log level of Tulip. Valid options are DEBUG, INFO, WARNING, ERROR, and CRITICAL. The default value is INFO.
 - OPENAI_API_KEY: The API key for OpenAI. The default value is an empty string.
-- CHAR_LIMIT: The maximum number of characters processed in one chunk. The default value is 5000.
+- MAX_CHARS: The maximum number of characters processed in one chunk. The default value is 5000.
 - MODEL: The openai model used by Tulip. The default value is gpt-3.5-turbo, but gpt-4 is also available
 
-As environment variables they will become: TULP_LOG_LEVEL, TULP_OPENAI_API_KEY, TULP_CHAR_LIMIT or TULP_MODEL
+As environment variables they will become: TULP_LOG_LEVEL, TULP_OPENAI_API_KEY, TULP_MAX_CHARS or TULP_MODEL
 
 Here is an example configuration file with the default values:
 ```
 [DEFAULT]
 LOG_LEVEL = INFO
 OPENAI_API_KEY = <<<YOUR API KEY >>>>
-CHAR_LIMIT = 5000
+MAX_CHARS = 10000
 MODEL = gpt-3.5-turbo
 ```
 ## Examples:
