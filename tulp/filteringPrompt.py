@@ -1,4 +1,4 @@
-import tulp.tulplogger as tulplogger
+from . import tulplogger
 
 log = tulplogger.Logger()
 

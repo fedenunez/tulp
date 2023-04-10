@@ -4,9 +4,9 @@ import argparse
 import sys
 import os
 import math
-import tulp.tulplogger as tulplogger
-import tulp.tulpconfig as tulpconfig
-import tulp.version as version
+from . import tulplogger
+from . import tulpconfig
+from . import version
 
 log = tulplogger.Logger()
 config = tulpconfig.TulipConfig()
@@ -59,11 +59,11 @@ def run():
 
     instructionFunction=None
     if instructions:
-        import tulp.filteringPrompt
-        instructionFunction=tulp.filteringPrompt.getBaseMessages
+        from . import filteringPrompt
+        instructionFunction=filteringPrompt.getBaseMessages
     else:
-        import tulp.requestPrompt
-        instructionFunction=tulp.requestPrompt.getBaseMessages
+        from . import requestPrompt
+        instructionFunction=requestPrompt.getBaseMessages
 
     user_messages=[]
     # Split input text into chunks to fit within max token window
