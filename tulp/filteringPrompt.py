@@ -1,6 +1,6 @@
-import tuliplogger
+import tulp.tulplogger as tulplogger
 
-log = tuliplogger.Logger()
+log = tulplogger.Logger()
 
 def getBaseMessages(user_instructions, nof_chunks=None,next_chunk=None, context=None):
     log.info(f"getPromptForFiltering:  nof_chunks:{nof_chunks} ; next_chunk:{next_chunk}, context: {context}")

@@ -1,27 +1,4 @@
-from setuptools import setup, find_packages
+from setuptools import setup
 
-setup(
-    name='pytulip',
-    version='0.2.2',
-    py_modules=("tulip","tuliplogger", "requestPrompt", "filteringPrompt"),
-    install_requires=[
-        'openai',
-    ],
-    author='Federico Nuñez (fedenunez)',
-    author_email='fedenunez@gmail.com',
-    description="""
-TULIP: TULIP Understands Language Instructions Perfectly
+setup()
 
-A command line tool, in the best essence of POSIX tooling, that will help you to **process**, **filter**, and **create** data in this new Artificial Intelligence world.
-
-""",
-    url='https://github.com/fedenunez/tulip',
-    project_urls={
-        'Source': 'https://github.com/fedenunez/tulip',
-    },
-    python_requires=">=3.7.*",
-    entry_points='''
-        [console_scripts]
-        tulip=tulip:run
-    ''',
-)

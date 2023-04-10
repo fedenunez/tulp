@@ -1,8 +1,8 @@
 import os
 import sys
-import tulipconfig
+import tulp.tulpconfig as tulpconfig
 
-config = tulipconfig.TulipConfig()
+config = tulpconfig.TulipConfig()
 
 class Logger:
     def __init__(self):
