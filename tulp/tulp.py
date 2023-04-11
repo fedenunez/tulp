@@ -13,7 +13,7 @@ config = tulpconfig.TulipConfig()
 
 def run():
 
-    log.info(f"Running tulp v{version.VERSION}.")
+    log.info(f"Running tulp v{version.VERSION} using model: {config.model}")
     openai_key = config.openai_api_key
     if not openai_key:
         log.error(f'OpenAI API key not found. Please set the TULP_OPENAI_API_KEY environment variable or add it to {tulpconfig.CONFIG_FILE}')
@@ -40,9 +40,6 @@ def run():
     if args.prompt:
         prompt = " ".join(args.prompt)
 
-
-
-
     # If prompt is not provided and no input is available on stdin, prompt the user for input
     instructions=None
     if not args.prompt and not input_text:
@@ -54,9 +51,6 @@ def run():
     elif args.prompt and input_text:
         instructions = prompt
 
-
-
-
     instructionFunction=None
     if instructions:
         from . import filteringPrompt
@@ -66,12 +60,12 @@ def run():
         instructionFunction=requestPrompt.getBaseMessages
 
     user_messages=[]
-    # Split input text into chunks to fit within max token window
+    # Split input text into chunks to fit within max chars window
     max_chars = config.max_chars  # Maximum number of chars that we will send to GPT
     if len(input_text) > max_chars:
-        log.warning(f"Warning: input is to big, we will split processing in chunks of less than {max_chars}. You may use the TULP_MAX_CHARS env variable to control the size of the processing chunk size.")
+        log.warning(f"Warning: input is too big ({len(input_text)}, we will split the input in chunks of less than {max_chars}, this may lead to some unexpected output.\n You may use the TULP_MAX_CHARS env variable to control the size of the processing chunk size and try to improve the resources. \n Notice: It is recommended to force TULP_MODEL=gpt-4 when increassing the MAX_CHARS to anything bigger than 4000.")
     input_lines = input_text.splitlines()
-    # try to split it in lines or max_size
+    # try to split it in lines of less than max_size
     compressed_lines = [""]
 
     for iline in input_lines:
@@ -92,10 +86,11 @@ def run():
     for line in compressed_lines:
          user_messages.append( {"role": "user", "content": line})
 
-
-
     for i in range(0,len(user_messages)):
-        log.info(f"PROCESSING {i+1} of {len(user_messages)}:")
+        if (len(user_messages) > 1):
+            log.info(f"Processing {i+1} of {len(user_messages)}...")
+        else:
+            log.info(f"Processing...")
         response_text = ""
         message = user_messages[i]
         if message:
@@ -114,10 +109,9 @@ def run():
             else:
                 response_text += f"(#output)\nsimulated request"
 
-
-
         lines = response_text.splitlines()
-        valid_blocks=["(#output)","(#error)","(#context)"]
+        # (#end) is not specified by us, but sometimes gpt-3.5 wrote it so we just parse it so we can keep it out
+        valid_blocks=["(#output)","(#error)","(#context)","(#comment)","(#end)"]
         blocks_dict={}
 
         # parse blocks:
@@ -131,25 +125,34 @@ def run():
                 if parsingBlock:
                     blocks_dict[parsingBlock] += line + "\n"
                 else:
-                    log.error(f"Unknown error while processing: output before quotes?, try a different input: {line} - {parsingBlock}")
-                    log.error(response_text)
+                    if config.model == "gpt-3.5-turbo": 
+                        log.error("Unknown error while processing: this is usually related to gpt not honoring our output format, please try again or try with a different model (TULP_MODEL=gpt-4 maybe?)")
+                        log.debug(f"ERROR: Invalid answer format: =====\n {response_text} \n=====")
+                    else:
+                        log.error("Unknown error while processing: this is usually related to gpt not honoring our output format, please try again or use TULP_LOG_LEVEL=DEBUG to inspect the raw answer")
+                        log.debug(f"ERROR: Invalid answer format: =====\n {response_text} \n=====")
                     sys.exit(2)
-
 
         if "(#error)" in blocks_dict:
             log.error("Error: Couldn't process your request:")
             log.error(blocks_dict["(#error)"])
             sys.exit(1)
-        elif "(#output)" in blocks_dict:
-            print(blocks_dict["(#output)"])
+        else:
+            valid_answer = False
+            if "(#output)" in blocks_dict:
+                valid_answer = True
+                print(blocks_dict["(#output)"])
+            if "(#comment)" in blocks_dict:
+                valid_answer = True
+                log.info(blocks_dict["(#comment)"])
             if "(#context)" in blocks_dict:
                 prev_context = blocks_dict["(#context)"]
             else:
                 prev_context = None
-        else:
-            log.error("Unknown error while processing, try with a different request, model response:")
-            log.error(response_text)
-            sys.exit(2)
+            if not valid_answer:
+                log.error("Unknown error while processing, try with a different request, model response:")
+                log.error(response_text)
+                sys.exit(2)
 
 if __name__ == "__main__":
     run()
