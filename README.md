@@ -24,7 +24,7 @@ tulp [A written request or question]
 ```
 In both cases, TULP will write to the standard output the answers and will write any other information to the standard error.
 
-It is important to note that if your input is larger than 5000 characters, the input will be split into multiple requests and the results may vary. It works great when the input is less than that.
+It is important to note that if your input is larger than 4000 characters, the input will be split into multiple requests and the results may vary. It works great when the input is less than that.
 
 ## Configuration 
 The configuration file is located at ~/.tulp.conf. Define your own ~/.tulp.conf file or define the same environment variable but using prefix TULP. 

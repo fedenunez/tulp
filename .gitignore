@@ -1,0 +1,11 @@
+# Ignore temporal files of python setuptools, vim, emacs and python
+# Ignore temporal files for python setuptools
+*.egg-info/
+dist/
+build/
+# Ignore temporal files for vim
+*.sw*
+# Ignore temporal files for emacs
+*~
+\#*\#
+
