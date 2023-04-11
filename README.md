@@ -2,7 +2,9 @@
 
 A command line tool, in the best essence of POSIX tooling, that will help you to **process**, **filter**, and **create** data in this new Artificial Intelligence world, backed by chatGPT.
 
-<a href="https://asciinema.org/a/576555" target="_blank"><img src="https://asciinema.org/a/576555.svg" width=640 /></a>
+TULP allows you to harness the power of chatGPT by piping standard input content directly to chatGPT getting the answer back on the shell.
+
+<a href="https://asciinema.org/a/576555" target="_blank"><img src="https://asciinema.org/a/576555.svg" width=640  /></a>
 
 ## Installation:
 
