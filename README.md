@@ -71,7 +71,9 @@ cat README.md | tulp fix any grammatical or syntactical error > README.md.fixed
 ```
 
 Or even better:
+```
 cat README.md | TULP_MAX_CHARS=10000 TULP_MODEL=gpt-4 tulp fix typos and syntax errors > README.fix.md
+```
 
 ### Translations
 cat README.md | tulp translate to Spanish > README.es.md
