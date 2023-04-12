@@ -2,6 +2,10 @@
 
 A command line tool, in the best essence of POSIX tooling, that will help you to **process**, **filter**, and **create** data in this new Artificial Intelligence world, backed by chatGPT.
 
+TULP allows you to harness the power of chatGPT by piping standard input content directly to chatGPT getting the answer back on the shell.
+
+<a href="https://asciinema.org/a/576555" target="_blank"><img src="https://asciinema.org/a/576555.svg" width=640  /></a>
+
 ## Installation:
 
 ```
@@ -67,11 +71,14 @@ cat README.md | tulp fix any grammatical or syntactical error > README.md.fixed
 ```
 
 Or even better:
+```
 cat README.md | TULP_MAX_CHARS=10000 TULP_MODEL=gpt-4 tulp fix typos and syntax errors > README.fix.md
+```
 
 ### Translations
+```
 cat README.md | tulp translate to Spanish > README.es.md
-
+````
 ### Data filtering from formatted input
 #### csv
 ```
@@ -80,9 +87,10 @@ Count
 3
 1
 2
-
 ```
+
 ### csv
+
 ```
 cat persons.json | tulp 'list the names and ages of each person in a csv table, using ; as separator'
 
@@ -122,7 +130,7 @@ Sue,4
 ```
 
 
-## Origin of the name
+# Origin of the name
 I used ```tulp.py``` to create "TULP". In some way, everything is recursive in "TULP", so it makes sense to use a recursive acronym.
 
 Therefore, after several iterations with ```tulp.py```, "TULP" and I decided that the best name would be "TULP", and this is how we decided what "TULP" stands for:
@@ -138,6 +146,6 @@ TULP could stand for:
 
 
 
-## Why?
+# Why?
 
 I am a heavy user of unix tooling (e.g: awk, jq, sed, grep and so on), I have been using them since my early days and I use to think that I can't survive without them. But then, chatGPT appears and I started to use more and more GPT for things that I use to use unix tooling. Somehow I feel the pain of cut&paste and I was missing a way to do it faster and from within the terminal itself, so I came up with ```tulp```
