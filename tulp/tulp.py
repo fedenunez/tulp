@@ -95,19 +95,17 @@ def run():
         message = user_messages[i]
         if message:
             request = instructionFunction(instructions, len(user_messages), i+1, prev_context)
-            if True:
-                request.append(message)
-                response = openai.ChatCompletion.create(
-                    model=config.model,
-                    messages=request,
-                    temperature=0
-                )
-                for req in request:
-                    log.debug(f"REQ: {req}")
-                log.debug(f"ANS: {response}")
-                response_text += response.choices[0].message.content
-            else:
-                response_text += f"(#output)\nsimulated request"
+            request.append(message)
+            for req in request:
+                log.debug(f"REQ: {req}")
+            log.debug(f"Sending the request to OpenAI...")
+            response = openai.ChatCompletion.create(
+                model=config.model,
+                messages=request,
+                temperature=0
+            )
+            log.debug(f"ANS: {response}")
+            response_text += response.choices[0].message.content
 
         lines = response_text.splitlines()
         # (#end) is not specified by us, but sometimes gpt-3.5 wrote it so we just parse it so we can keep it out
