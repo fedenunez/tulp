@@ -12,11 +12,11 @@ def test_tulp_process_instructions_like_input():
 
 
 def test_tulp_code_creation_hello():
-    cmd = "./main.py 'write a python program that print \"hello tulip world\"' | python"
+    cmd = "./main.py 'write a python program that print \"hello tulp world\"' | python"
     result = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     assert result.returncode == 0
     res = result.stdout.decode().strip()
-    assert res == 'hello tulip world'
+    assert res == 'hello tulp world'
 
 
 def test_tulp_code_creation_countdown():
@@ -25,3 +25,10 @@ def test_tulp_code_creation_countdown():
     assert result.returncode == 0
     res = result.stdout.decode().strip()
     assert res == '10\n9\n8\n7\n6\n5\n4\n3\n2\n1\n0\nhello tulip world'
+
+def test_tulp_command_creation_sed():
+    cmd = "./main.py how to use sed to replace all the ocurrances of failed to PASSED, from the std input"
+    result = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    assert result.returncode == 0
+    res = result.stdout.decode().strip()
+    assert res == "sed 's/failed/PASSED/g'"
