@@ -11,6 +11,18 @@ from . import version
 log = tulplogger.Logger()
 config = tulpconfig.TulipConfig()
 
+# gpt-3.5 usually adds unneeded markdown codeblock wrappers, try to remove them
+def cleanup_output(output):
+    olines = output.splitlines()
+    if len(olines) > 2:
+        if olines[0].startswith("```") and olines[-1] == "```":
+            log.debug("markdown codeblock wrapping detected and stripped!")
+            return "\n".join(olines[1:-1])
+    return output
+
+
+
+
 def run():
 
     log.info(f"Running tulp v{version.VERSION} using model: {config.model}")
@@ -117,7 +129,8 @@ def run():
         for line in lines:
             if (line in valid_blocks):
                 parsingBlock=line
-                blocks_dict[parsingBlock]=""
+                if parsingBlock not in blocks_dict:
+                   blocks_dict[parsingBlock]=""
 
             else:
                 if parsingBlock:
@@ -139,7 +152,7 @@ def run():
             valid_answer = False
             if "(#output)" in blocks_dict:
                 valid_answer = True
-                print(blocks_dict["(#output)"])
+                print(cleanup_output(blocks_dict["(#output)"]))
             if "(#comment)" in blocks_dict:
                 valid_answer = True
                 log.info(blocks_dict["(#comment)"])
