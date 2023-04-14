@@ -8,4 +8,4 @@ build/
 # Ignore temporal files for emacs
 *~
 \#*\#
-
+__pycache__/
