@@ -27,7 +27,7 @@ def test_tulp_code_creation_countdown():
     assert res == '10\n9\n8\n7\n6\n5\n4\n3\n2\n1\n0\nHello tulp world'
 
 def test_tulp_command_creation_sed():
-    cmd = "./main.py how to use sed to replace all the ocurrances of failed to PASSED, from the std input"
+    cmd = "./main.py write the exact sed command usage to remplace all the ocurrances of failed to PASSED, from the std input"
     result = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     assert result.returncode == 0
     res = result.stdout.decode().strip()
