@@ -156,11 +156,17 @@ usually improves the quality of the result.
                     blocks_dict[parsingBlock] += line + "\n"
                 else:
                     if config.model == "gpt-3.5-turbo": 
-                        log.error("Unknown error while processing: this is usually related to gpt not honoring our output format, please try again or try with a different model (TULP_MODEL=gpt-4 maybe?)")
-                        log.debug(f"ERROR: Invalid answer format: =====\n {response_text} \n=====")
+                        log.error("""
+Unknown error while processing: this is usually related to gpt not honoring our
+output format, please try again and try to be more specific, you can also try
+with a different model (e.g., TULP_MODEL=gpt-4 tulp ...)""")
                     else:
-                        log.error("Unknown error while processing: this is usually related to gpt not honoring our output format, please try again or use TULP_LOG_LEVEL=DEBUG to inspect the raw answer")
-                        log.debug(f"ERROR: Invalid answer format: =====\n {response_text} \n=====")
+                        log.error("""
+Unknown error while processing: this is usually related to gpt not honoring
+our output format, please try again and try to be more specific in your
+request. You can also try to enable DEBUG log to inspect the raw answer (e.g.,
+TULP_LOG_LEVEL=DEBUG tulp ...)""") 
+                    log.debug(f"ERROR: Invalid answer format: =====\n {response_text} \n=====")
                     sys.exit(2)
 
         if "(#error)" in blocks_dict:
