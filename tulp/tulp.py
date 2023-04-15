@@ -20,6 +20,8 @@ def cleanup_output(output):
             return "\n".join(olines[1:-1])
     return output
 
+def block_exists(blocks_dict, key):
+    return key in blocks_dict and len(blocks_dict[key].strip()) > 0
 
 
 
@@ -169,19 +171,19 @@ TULP_LOG_LEVEL=DEBUG tulp ...)""")
                     log.debug(f"ERROR: Invalid answer format: =====\n {response_text} \n=====")
                     sys.exit(2)
 
-        if "(#error)" in blocks_dict:
+        if block_exists(blocks_dict,"(#error)"):
             log.error("Error: Couldn't process your request:")
             log.error(blocks_dict["(#error)"])
             sys.exit(1)
         else:
             valid_answer = False
-            if "(#output)" in blocks_dict:
+            if block_exists(blocks_dict,"(#output)"):
                 valid_answer = True
                 print(cleanup_output(blocks_dict["(#output)"]))
-            if "(#comment)" in blocks_dict:
+            if block_exists(blocks_dict,"(#comment)"):
                 valid_answer = True
                 log.info(blocks_dict["(#comment)"])
-            if "(#context)" in blocks_dict:
+            if block_exists(blocks_dict,"(#context)"):
                 prev_context = blocks_dict["(#context)"]
             else:
                 prev_context = None
