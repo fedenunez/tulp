@@ -35,10 +35,10 @@ By default, tulp uses **gpt-3.5-turbo**, because it is cheaper and **faster**, b
 The configuration file is located at ~/.tulp.conf. Define your own ~/.tulp.conf file or define the same environment variable but using the prefix TULP_. 
 
 The following are the parameters that can be configured:
-- LOG_LEVEL: The log level of Tulp. Valid options are DEBUG, INFO, WARNING, ERROR, and CRITICAL. The default value is INFO.
-- OPENAI_API_KEY: The API key for OpenAI. The default value is an empty string.
-- MAX_CHARS: The maximum number of characters processed in one chunk. The default value is 5000.
-- MODEL: The OpenAI model to be used by Tulp. The default value is gpt-3.5-turbo, but gpt-4 is also available.
+- **LOG_LEVEL**: The log level of Tulp. Valid options are DEBUG, INFO, WARNING, ERROR, and CRITICAL. The default value is INFO.
+- **OPENAI_API_KEY**: The API key for OpenAI. The default value is an empty string.
+- **MAX_CHARS**: The maximum number of characters processed in one chunk. The default value is 5000.
+- **MODEL**: The OpenAI model to be used by Tulp. The default value is gpt-3.5-turbo, but gpt-4 is also available.
 
 As environment variables, they will become: TULP_LOG_LEVEL, TULP_OPENAI_API_KEY, TULP_MAX_CHARS, or TULP_MODEL.
 
