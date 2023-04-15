@@ -24,7 +24,6 @@ def cleanup_output(output):
 
 
 def run():
-
     log.info(f"Running tulp v{version.VERSION} using model: {config.model}")
     openai_key = config.openai_api_key
     if not openai_key:
@@ -77,7 +76,24 @@ def run():
     # Split input text into chunks to fit within max chars window
     max_chars = config.max_chars  # Maximum number of chars that we will send to GPT
     if len(input_text) > max_chars:
-        log.warning(f"Warning: input is too big ({len(input_text)} chars), usually gpt does not handle very well inputs bigger than 5000 chars. Anyway, we will split the input into chunks of less than {max_chars} chars and try. This may lead to some unexpected output.\nYou may use the TULP_MAX_CHARS env variable to control the size of the processing chunks, which may improve the results.\nNotice: It is recommended to force TULP_MODEL=gpt-4 when increasing the MAX_CHARS.")
+        warnMsg = f"""
+Input is too large ({len(input_text)} characters). Typically, tulp does not handle inputs
+larger than 5000 characters well. Regardless, tulp will divide the input into
+chunks of fewer than {max_chars} characters and attempt to process all the input.
+
+Please be aware that the quality of the final result may vary depending on the
+task. Tasks that are line-based and do not require context will work great,
+while tasks that require an overall view of the document may fail miserably.
+
+You may adjust the TULP_MAX_CHARS environment variable to control the size of
+the processing chunks, which may improve the results.
+
+"""
+        if config.model != "gpt-4":
+           warnMsg = warnMsg + """You can also try to force the use of the gpt-4 model (TULP_MODEL=gpt-4), which
+usually improves the quality of the result.
+"""
+        log.warning(warnMsg)
     input_lines = input_text.splitlines()
 
     # try to split it in lines of less than max_size
