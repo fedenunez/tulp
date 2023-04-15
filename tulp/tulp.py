@@ -29,7 +29,9 @@ def run():
     openai_key = config.openai_api_key
     if not openai_key:
         log.error(f'OpenAI API key not found. Please set the TULP_OPENAI_API_KEY environment variable or add it to {tulpconfig.CONFIG_FILE}')
+        log.error(f"If you don't have one, please create one at: https://platform.openai.com/account/api-keys")
         sys.exit(1)
+
 
     openai.api_key = openai_key
     prev_context=None
@@ -75,8 +77,9 @@ def run():
     # Split input text into chunks to fit within max chars window
     max_chars = config.max_chars  # Maximum number of chars that we will send to GPT
     if len(input_text) > max_chars:
-        log.warning(f"Warning: input is too big ({len(input_text)}, we will split the input in chunks of less than {max_chars}, this may lead to some unexpected output.\n You may use the TULP_MAX_CHARS env variable to control the size of the processing chunk size and try to improve the resources. \n Notice: It is recommended to force TULP_MODEL=gpt-4 when increassing the MAX_CHARS to anything bigger than 4000.")
+        log.warning(f"Warning: input is too big ({len(input_text)} chars), usually gpt does not handle very well inputs bigger than 5000 chars. Anyway, we will split the input into chunks of less than {max_chars} chars and try. This may lead to some unexpected output.\nYou may use the TULP_MAX_CHARS env variable to control the size of the processing chunks, which may improve the results.\nNotice: It is recommended to force TULP_MODEL=gpt-4 when increasing the MAX_CHARS.")
     input_lines = input_text.splitlines()
+
     # try to split it in lines of less than max_size
     compressed_lines = [""]
 
