@@ -32,3 +32,9 @@ def test_tulp_poem_json():
     assert int(p['paul']['chocolates']) == 5
     assert int(p['mark']['chocolates']) == 3
 
+def test_tulp_simple_text_correction():
+    cmd = "echo Improbed error logs in case of mising OPEN_API_KEY and warning message in case of MAX_CHARS exceeded. | ./main.py the input is a text written in english, fix any syntax or grammatical error, try to keep the same input format 2> /tmp/e | tee /tmp/o "
+    result = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    assert result.returncode == 0
+    res = result.stdout.decode().strip()
+    assert res == "Improved error logs in case of missing OPEN_API_KEY and warning message in case of MAX_CHARS exceeded."

@@ -11,13 +11,13 @@ def getBaseMessages(user_instructions=None, nof_chunks=None, next_chunk=None, co
 """
     user_system_instructions = f"""# Rules
 - You must not process my request as a chat, but as a unique request that you must fulfill without any further question.
-- You must format your answer in sections, nothing should be written outside of a section block, the sections are started by a line that only has the section identifier and ends with a (#end) line, valid identifiers are:
+- You must format your answer in answer blocks, nothing should be written outside of a answer block, the answer blocks are started by a line that only has the answer block identifier and ends with a (#end) line, valid identifiers are:
    - "(#output)" followed by new line: the created raw output according to "the Request" below, without any explanations and without any introductions
-   - "(#error)" followed by new line: if you can't understand or process "the Request" you will use this section to report errors or limitations that prevent you from writing the (#output).
-   - "(#comment)" followed by new line: if you think that the (#output) is not self-explanatory, write this section and include any explanation or description of what you wrote in the (#output) in this section, refer to the (#output) as "The created ...". Do never make a reference like "This..." or "The above..." to refer to the created output.
-- You must not add any explanation or text outside the defined sections
-- You must not use markdown format in the (#output) section unless the Request explicitly asks for it
-- If "the request" is to write a script, a software code or config, you must follow this rules to write in the (#output) section:
+   - "(#error)" followed by new line: if you can't understand or process "the Request" you will use this answer block to report errors or limitations that prevent you from writing the (#output).
+   - "(#comment)" followed by new line: if you think that the (#output) is not self-explanatory, write this answer block and include any explanation or description of what you wrote in the (#output) in this answer block, refer to the (#output) as "The created ...". Do never make a reference like "This..." or "The above..." to refer to the created output.
+- You must not add any explanation or text outside the defined answer blocks
+- You must not use markdown format in the (#output) answer block unless the Request explicitly asks for it
+- If "the request" is to write a script, a software code or config, you must follow this rules to write in the (#output) answer block:
    - **must only contain valid code** in the chosen programming language or target config file
    - explain, step by step, using inline comments in the requested language
    - adds a introduction comment at the top
@@ -26,10 +26,10 @@ def getBaseMessages(user_instructions=None, nof_chunks=None, next_chunk=None, co
   - Avoid using markdown syntax and use shell comments to explain whatever you need
   - depending on how sure you are of how to solve the request, you must either:
     * if you know exactly how to do it: you must write the command with all the arguments without further explanations or questions at (#output)
-    * if you need more details or to explain different options, you must write the options and arguments that may be needed as part of the (#comment) section
-- You must keep all the (#output) section in the formats that the Request specify avoiding mixing formats such as markdown and scripting in the same output.
+    * if you need more details or to explain different options, you must write the options and arguments that may be needed as part of the (#comment) answer block
+- You must keep all the (#output) answer block in the formats that the Request specify avoiding mixing formats such as markdown and scripting in the same output.
 - You must not start your coding (#output) message with "```" or "```python" or "```...", just write the code without any explanation 
-- If my request asks to create some content, write the raw content without any explanation in the (#output) section and use the (#comment) block to write any explanation referred to the output block.
+- If my request asks to create some content, write the raw content without any explanation in the (#output) answer block and use the (#comment) block to write any explanation referred to the output block.
 - You must use my following message as the Request. The request:
 """
     request_messages = []
