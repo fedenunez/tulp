@@ -11,69 +11,63 @@ from . import version
 log = tulplogger.Logger()
 config = tulpconfig.TulipConfig()
 
-# gpt-3.5 usually adds unneeded markdown codeblock wrappers, try to remove them
+
+
+# Helper functions
+
+## cleanup_output: clenaup output, removing artifacts
 def cleanup_output(output):
     olines = output.splitlines()
+    # gpt-3.5 usually adds unneeded markdown codeblock wrappers, try to remove them
     if len(olines) > 2:
         if olines[0].startswith("```") and olines[-1] == "```":
             log.debug("markdown codeblock wrapping detected and stripped!")
             return "\n".join(olines[1:-1])
     return output
 
+
+## block_exists(blocks_dict, key):  test if a KEY exist and is not empty
 def block_exists(blocks_dict, key):
     return key in blocks_dict and len(blocks_dict[key].strip()) > 0
 
+## VALID_BLOCKS: define the valid answer blocks  blocks
+VALID_BLOCKS=["(#output)","(#error)","(#context)","(#comment)","(#end)"]
+## parse_response)response_text): parse a gpt response, returning a dict with each response section 
+def parse_response(response_text):
+    blocks_dict={}
+    lines = response_text.splitlines()
+    # (#end) is not specified by us, but sometimes gpt-3.5 wrote it so we just parse it so we can keep it out
+
+    # parse blocks:
+    parsingBlock=None
+    for line in lines:
+        if (line in VALID_BLOCKS):
+            parsingBlock=line
+            if parsingBlock not in blocks_dict:
+               blocks_dict[parsingBlock]=""
+
+        else:
+            if parsingBlock:
+                blocks_dict[parsingBlock] += line + "\n"
+            else:
+                if config.model == "gpt-3.5-turbo": 
+                    log.error("""
+Unknown error while processing: this is usually related to gpt not honoring our
+output format, please try again and try to be more specific, you can also try
+with a different model (e.g., TULP_MODEL=gpt-4 tulp ...)""")
+                else:
+                    log.error("""
+Unknown error while processing: this is usually related to gpt not honoring
+our output format, please try again and try to be more specific in your
+request. You can also try to enable DEBUG log to inspect the raw answer (e.g.,
+TULP_LOG_LEVEL=DEBUG tulp ...)""") 
+                log.debug(f"ERROR: Invalid answer format: =====\n {response_text} \n=====")
+                sys.exit(2)
+    return blocks_dict
 
 
-def run():
-    log.info(f"Running tulp v{version.VERSION} using model: {config.model}")
-    openai_key = config.openai_api_key
-    if not openai_key:
-        log.error(f'OpenAI API key not found. Please set the TULP_OPENAI_API_KEY environment variable or add it to {tulpconfig.CONFIG_FILE}')
-        log.error(f"If you don't have one, please create one at: https://platform.openai.com/account/api-keys")
-        sys.exit(1)
-
-
-    openai.api_key = openai_key
-    prev_context=None
-
-
-    # Define command line arguments
-    parser = argparse.ArgumentParser(description="A command line interface for the OpenAI GPT language model")
-    parser.add_argument("prompt", nargs="*", help="User prompt to send to the language model", type=str)
-
-    # Parse command line arguments
-    args = parser.parse_args()
-
-    # If input is available on stdin, read it
-    if not sys.stdin.isatty():
-        input_text = sys.stdin.read().strip()
-    else:
-        input_text = ""
-
-    # If prompt is provided as argument, use it to construct the input text
-    if args.prompt:
-        prompt = " ".join(args.prompt)
-
-    # If prompt is not provided and no input is available on stdin, prompt the user for input
-    instructions=None
-    if not args.prompt and not input_text:
-        input_text = input("Enter your request: ").strip()
-    elif args.prompt and not input_text:
-        input_text = prompt
-    elif not args.prompt and input_text:
-        instructions = "Summarize the input"
-    elif args.prompt and input_text:
-        instructions = prompt
-
-    instructionFunction=None
-    if instructions:
-        from . import filteringPrompt
-        instructionFunction=filteringPrompt.getBaseMessages
-    else:
-        from . import requestPrompt
-        instructionFunction=requestPrompt.getBaseMessages
-
+## pre_process_raw_input(input_text):  split all the input and create the user_messages with chunks of text ready to be send 
+def pre_process_raw_input(input_text):
     user_messages=[]
     # Split input text into chunks to fit within max chars window
     max_chars = config.max_chars  # Maximum number of chars that we will send to GPT
@@ -119,6 +113,60 @@ usually improves the quality of the result.
     for line in compressed_lines:
          user_messages.append( {"role": "user", "content": line})
 
+    return user_messages
+
+def run():
+    log.info(f"Running tulp v{version.VERSION} using model: {config.model}")
+    openai_key = config.openai_api_key
+    if not openai_key:
+        log.error(f'OpenAI API key not found. Please set the TULP_OPENAI_API_KEY environment variable or add it to {tulpconfig.CONFIG_FILE}')
+        log.error(f"If you don't have one, please create one at: https://platform.openai.com/account/api-keys")
+        sys.exit(1)
+
+
+    openai.api_key = openai_key
+    prev_context=None
+
+
+    # Define command line arguments
+    parser = argparse.ArgumentParser(description="A command line interface for the OpenAI GPT language model")
+    parser.add_argument("prompt", nargs="*", help="User prompt to send to the language model", type=str)
+
+    # Parse command line arguments
+    args = parser.parse_args()
+
+    # If input is available on stdin, read it
+    if not sys.stdin.isatty():
+        input_text = sys.stdin.read().strip()
+    else:
+        input_text = ""
+
+    # If prompt is provided as argument, use it to construct the input text
+    if args.prompt:
+        prompt = " ".join(args.prompt)
+
+    # If prompt is not provided and no input is available on stdin, prompt the user for input
+    instructions=None
+    if not args.prompt and not input_text:
+        input_text = input("Enter your request: ").strip()
+    elif args.prompt and not input_text:
+        input_text = prompt
+    elif not args.prompt and input_text:
+        instructions = "Summarize the input"
+    elif args.prompt and input_text:
+        instructions = prompt
+
+    getInstructionMessages=None
+    if instructions:
+        from . import filteringPrompt
+        getInstructionMessages=filteringPrompt.getBaseMessages
+    else:
+        from . import requestPrompt
+        getInstructionMessages=requestPrompt.getBaseMessages
+
+
+    user_messages = pre_process_raw_input(input_text)
+
     for i in range(0,len(user_messages)):
         if (len(user_messages) > 1):
             log.info(f"Processing {i+1} of {len(user_messages)}...")
@@ -127,7 +175,7 @@ usually improves the quality of the result.
         response_text = ""
         message = user_messages[i]
         if message:
-            request = instructionFunction(instructions, len(user_messages), i+1, prev_context)
+            request = getInstructionMessages(instructions, len(user_messages), i+1, prev_context)
             request.append(message)
             for req in request:
                 log.debug(f"REQ: {req}")
@@ -140,36 +188,8 @@ usually improves the quality of the result.
             log.debug(f"ANS: {response}")
             response_text += response.choices[0].message.content
 
-        lines = response_text.splitlines()
-        # (#end) is not specified by us, but sometimes gpt-3.5 wrote it so we just parse it so we can keep it out
-        valid_blocks=["(#output)","(#error)","(#context)","(#comment)","(#end)"]
-        blocks_dict={}
 
-        # parse blocks:
-        parsingBlock=None
-        for line in lines:
-            if (line in valid_blocks):
-                parsingBlock=line
-                if parsingBlock not in blocks_dict:
-                   blocks_dict[parsingBlock]=""
-
-            else:
-                if parsingBlock:
-                    blocks_dict[parsingBlock] += line + "\n"
-                else:
-                    if config.model == "gpt-3.5-turbo": 
-                        log.error("""
-Unknown error while processing: this is usually related to gpt not honoring our
-output format, please try again and try to be more specific, you can also try
-with a different model (e.g., TULP_MODEL=gpt-4 tulp ...)""")
-                    else:
-                        log.error("""
-Unknown error while processing: this is usually related to gpt not honoring
-our output format, please try again and try to be more specific in your
-request. You can also try to enable DEBUG log to inspect the raw answer (e.g.,
-TULP_LOG_LEVEL=DEBUG tulp ...)""") 
-                    log.debug(f"ERROR: Invalid answer format: =====\n {response_text} \n=====")
-                    sys.exit(2)
+        blocks_dict = parse_response(response_text)
 
         if block_exists(blocks_dict,"(#error)"):
             log.error("Error: Couldn't process your request:")
