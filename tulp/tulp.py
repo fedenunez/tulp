@@ -111,7 +111,7 @@ usually improves the quality of the result.
                     compressed_lines[compresed_index] += "\n"
 
     for line in compressed_lines:
-         user_messages.append( {"role": "user", "content": line})
+        user_messages.append( {"role": "user", "name":"raw_input", "content": line})
 
     return user_messages
 

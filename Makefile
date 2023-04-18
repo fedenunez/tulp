@@ -6,8 +6,7 @@ build:
 	python3 -m build .
 
 test:
-	pytest -v ./test/test_tulp.py
-	TULP_MODEL=gpt-4 pytest -v ./test/test_tulp_only_gpt4.py
+	pytest -v -s ./test/*.py
 
 upload:
 	python3 -m pip install twine
