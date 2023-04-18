@@ -13,14 +13,6 @@ def test_filter_columns():
     assert count == res.count("TULP")
     assert 0 == res.count("0")
 
-# Currently disabled: This should faild and the stderr should say that the answer was to long, suggesting to change the input level or improving the instructions
-# def test_output_is_to_long():
-#     count=20
-#     cmd = f"echo '{COLUMNS*count}' | ./main.py repeat the input 100 times"
-#     result = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-#     res = result.stderr.decode().strip()
-#     assert result.returncode != 0
-
 def test_filter_csv():
     count=10
     cmd = f"echo '{COLUMNS*count}' | ./main.py convert to a csv, each line should be a row and use the columns defined by the space in the input"
@@ -48,7 +40,6 @@ def test_json():
     result = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     assert result.returncode == 0
     res = result.stdout.decode().strip()
-    print(res)
     p = json.loads(res)
     assert int(p['paul']['chocolates']) == 5
     assert int(p['mark']['chocolates']) == 3
@@ -83,4 +74,12 @@ def test_translate_an_already_translated_text():
     assert result.returncode == 0
     res = result.stdout.decode().strip()
     assert res == theRawInput
+
+def test_translate_to_spanish():
+    theRawInput="Hello world!"
+    cmd = f"echo \"{theRawInput}\" | ./main.py translate it to spanish"
+    result = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    assert result.returncode == 0
+    res = result.stdout.decode().strip()
+    assert res == "¡Hola mundo!"
 

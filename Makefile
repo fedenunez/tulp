@@ -1,4 +1,4 @@
-.PHONY: build upload install test
+.PHONY: build upload install test testall
 
 build:
 	rm -rf dist/ build/
@@ -6,6 +6,9 @@ build:
 	python3 -m build .
 
 test:
+	pytest -v -s ./test/test_basic*.py ./test/test_advance*.py
+
+testall:
 	pytest -v -s ./test/*.py
 
 upload:
