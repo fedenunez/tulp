@@ -5,7 +5,7 @@ import json
 COLUMNS="0 T 1 U 2 L 3 P 4\n"
 
 def test_filter_columns():
-    count=5
+    count=10
     cmd = f"echo '{COLUMNS*count}' | ./main.py write the second, fourth, 6th and 8th columns, writing everthing together without any space"
     result = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     res = result.stdout.decode().strip()
@@ -77,10 +77,10 @@ def test_translate_an_already_translated_text():
     assert res == theRawInput
 
 def test_translate_to_spanish():
-    theRawInput="# Hello world!"
+    theRawInput="# Hello world"
     cmd = f"echo \"{theRawInput}\" | ./main.py translate it to spanish keeping the same markdown format"
     result = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     assert result.returncode == 0
     res = result.stdout.decode().strip()
-    assert res == "# ¡Hola mundo!"
+    assert res == "# Hola mundo"
 

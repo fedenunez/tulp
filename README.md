@@ -85,12 +85,12 @@ cat tulp.py | tulp print the name of the functions and also the return line
 
 ### Grammatical and syntax corrections:
 ```bash
-cat README.md | tulp fix any grammatical or syntactical error > README.md.fixed
+cat README.md | tulp fix all the typos, syntax and grammatical errors > README.fix.md
 ```
 
 Or even better:
 ```bash
-cat README.md | TULP_MAX_CHARS=10000 TULP_MODEL=gpt-4 tulp fix typos and syntax errors > README.fix.md
+cat README.md | TULP_MAX_CHARS=10000 TULP_MODEL=gpt-4 tulp fix all the typos, syntax and grammatical errors > README.fix.md
 ```
 
 ### Translations
