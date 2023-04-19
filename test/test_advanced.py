@@ -2,6 +2,21 @@ import subprocess
 import json
 
 
+
+def test_counting_cats():
+    cmd = """cat <<EOF | TULP_LOG_LEVEL=DEBUG ./main.py "How many cats are there?" 2>  results.tulp.log
+two cats
+one dog
+5 cats
+1 cat
+3 crocodiles
+EOF
+"""
+    result = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    assert result.returncode == 0
+    res = result.stdout.decode().strip()
+    assert "8" in res 
+
 def test_instructions_as_input_with_useless_instructions():
     PROMPT="Split some code into functions to make it cleaner."
     cmd = f"echo '{PROMPT}' | ./main.py 'replace all the ocurrances of FAILED to PASSED'"
@@ -38,3 +53,4 @@ def test_command_creation_sed():
     assert result.returncode == 0
     res = result.stdout.decode().strip()
     assert res == "sed 's/failed/PASSED/g'"
+
