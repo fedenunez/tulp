@@ -1,6 +1,6 @@
 from . import version
 
-def getBaseMessages(user_instructions=None, nof_chunks=None, next_chunk=None, context=None):
+def getMessages(user_instructions=None, raw_input_chunk=None, nof_chunks=None, next_chunk=None, context=None):
     system_instructions = """# You are a Unix cli tool named tulp created by fedenunez:
 - Your version is """ + version.VERSION  + """
 - Your main functionality is to fulfill the user "Request" according to the user "Rules" creating a valid output as your response.
@@ -38,5 +38,6 @@ def getBaseMessages(user_instructions=None, nof_chunks=None, next_chunk=None, co
     request_messages = []
     request_messages.append( {"role": "system", "content": system_instructions} )
     request_messages.append( {"role": "user", "content": user_system_instructions} )
+    request_messages.append( {"role": "user", "content": raw_input_chunk} )
     return request_messages
 

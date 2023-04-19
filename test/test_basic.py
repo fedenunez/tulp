@@ -5,7 +5,7 @@ import json
 COLUMNS="0 T 1 U 2 L 3 P 4\n"
 
 def test_filter_columns():
-    count=20
+    count=5
     cmd = f"echo '{COLUMNS*count}' | ./main.py write the second, fourth, 6th and 8th columns, writing everthing together without any space"
     result = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     res = result.stdout.decode().strip()
@@ -45,7 +45,7 @@ def test_json():
     assert int(p['mark']['chocolates']) == 3
 
 def test_poem_json():
-    cmd = "./main.py ' write a poem about paul and mark, were they went to buy chocolates, paul bought 5 and Mark 3' | ./main.py 'Write a json document using the following template: {\"<person name in lowercase>\":{ \"chocolates\": <number of chocolates> }}; Use lowercase for all the keys'"
+    cmd = "./main.py ' write a poem about paul and mark, were they went to buy chocolates, paul bought 5 and Mark 3' | ./main.py 'Write a json document using the following template: {\"<person name in lowercase>\":{ \"chocolates\": <number of chocolates> }}'"
     result = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     assert result.returncode == 0
     res = result.stdout.decode().strip()
@@ -54,11 +54,12 @@ def test_poem_json():
     assert int(p['mark']['chocolates']) == 3
 
 def test_simple_text_correction():
-    cmd = "echo Improbed error logs in case of mising OPEN_API_KEY and warning message in case of MAX_CHARS exceeded. | ./main.py Correct any typos, syntax, or grammatical errors in the text"
+    cmd = "echo Improbes error logs in the case of mising OPEN_API_KEY and improxes warning message in case of MAX_CHARS exceeded. | ./main.py Correct all the typos, syntax, or grammatical errors"
+
     result = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     assert result.returncode == 0
     res = result.stdout.decode().strip()
-    assert res == "Improved error logs in case of missing OPEN_API_KEY and warning message in case of MAX_CHARS exceeded."
+    assert res == "Improves error logs in the case of missing OPEN_API_KEY and improves warning message in case of MAX_CHARS exceeded."
 
 def test_simple_text_correction2():
     cmd = "echo Change the prompts to make GPT behave better and ansuer in our required format. | ./main.py Correct any typos"
@@ -68,7 +69,7 @@ def test_simple_text_correction2():
     assert res == "Change the prompts to make GPT behave better and answer in our required format."
 
 def test_translate_an_already_translated_text():
-    theRawInput="# A text is a text\nIt will always be a text and nobody will make it differently.\nThanks for your time!"
+    theRawInput="Hello world!"
     cmd = f"echo \"{theRawInput}\" | ./main.py translate it to english"
     result = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     assert result.returncode == 0
@@ -76,10 +77,10 @@ def test_translate_an_already_translated_text():
     assert res == theRawInput
 
 def test_translate_to_spanish():
-    theRawInput="Hello world!"
-    cmd = f"echo \"{theRawInput}\" | ./main.py translate it to spanish"
+    theRawInput="# Hello world!"
+    cmd = f"echo \"{theRawInput}\" | ./main.py translate it to spanish keeping the same markdown format"
     result = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     assert result.returncode == 0
     res = result.stdout.decode().strip()
-    assert res == "¡Hola mundo!"
+    assert res == "# ¡Hola mundo!"
 

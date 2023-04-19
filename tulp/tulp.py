@@ -66,9 +66,9 @@ TULP_LOG_LEVEL=DEBUG tulp ...)""")
     return blocks_dict
 
 
-## pre_process_raw_input(input_text):  split all the input and create the user_messages with chunks of text ready to be send 
+## pre_process_raw_input(input_text):  split all the input and create the raw_input_chunks with chunks of text ready to be send 
 def pre_process_raw_input(input_text):
-    user_messages=[]
+    raw_input_chunks=[]
     # Split input text into chunks to fit within max chars window
     max_chars = config.max_chars  # Maximum number of chars that we will send to GPT
     if len(input_text) > max_chars:
@@ -111,9 +111,9 @@ usually improves the quality of the result.
                     compressed_lines[compresed_index] += "\n"
 
     for line in compressed_lines:
-        user_messages.append( {"role": "user", "name":"raw_input", "content": line})
+        raw_input_chunks.append(line)
 
-    return user_messages
+    return raw_input_chunks
 
 def run():
     log.info(f"Running tulp v{version.VERSION} using model: {config.model}")
@@ -159,24 +159,24 @@ def run():
     getInstructionMessages=None
     if instructions:
         from . import filteringPrompt
-        getInstructionMessages=filteringPrompt.getBaseMessages
+        getInstructionMessages=filteringPrompt.getMessages
     else:
         from . import requestPrompt
-        getInstructionMessages=requestPrompt.getBaseMessages
+        getInstructionMessages=requestPrompt.getMessages
 
 
-    user_messages = pre_process_raw_input(input_text)
+    raw_input_chunks = pre_process_raw_input(input_text)
 
-    for i in range(0,len(user_messages)):
-        if (len(user_messages) > 1):
-            log.info(f"Processing {i+1} of {len(user_messages)}...")
+    for i in range(0,len(raw_input_chunks)):
+        if (len(raw_input_chunks) > 1):
+            log.info(f"Processing {i+1} of {len(raw_input_chunks)}...")
         else:
             log.info(f"Processing...")
+        finish_reason = ""
         response_text = ""
-        message = user_messages[i]
-        if message:
-            request = getInstructionMessages(instructions, len(user_messages), i+1, prev_context)
-            request.append(message)
+        raw_input_chunk = raw_input_chunks[i]
+        if raw_input_chunk:
+            request = getInstructionMessages(instructions, raw_input_chunk , len(raw_input_chunks), i+1, prev_context)
             for req in request:
                 log.debug(f"REQ: {req}")
             log.debug(f"Sending the request to OpenAI...")
@@ -187,6 +187,7 @@ def run():
             )
             log.debug(f"ANS: {response}")
             response_text += response.choices[0].message.content
+            finish_reason = response.choices[0].finish_reason
 
 
         blocks_dict = parse_response(response_text)
@@ -211,6 +212,17 @@ def run():
                 log.error("Unknown error while processing, try with a different request, model response:")
                 log.error(response_text)
                 sys.exit(2)
+
+        if finish_reason == "length":
+            errorMsg = f"""Token limit exceeded:
+GPT could not finish your response, the answer depleted the chatGPT token
+limit. In order to overcome this error you may try to use a smaller MAX_CHARS
+(currently ={config.max_chars}), using a different model or improving your
+instructions.
+"""
+
+            log.error(errorMsg)
+            sys.exit(2)
 
 if __name__ == "__main__":
     run()

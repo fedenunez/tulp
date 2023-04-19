@@ -3,7 +3,7 @@ from . import version
 
 log = tulplogger.Logger()
 
-def getBaseMessages(user_instructions, nof_chunks=None, next_chunk=None, context=None):
+def getMessages(user_instructions, raw_input, nof_chunks=None, next_chunk=None, context=None):
     log.debug(f"getPromptForFiltering:  nof_chunks:{nof_chunks} ; next_chunk:{next_chunk}, context: {context}")
     request_messages = []
 
@@ -52,6 +52,7 @@ def getBaseMessages(user_instructions, nof_chunks=None, next_chunk=None, context
 
 
     request_messages.append({"role": "assistant", "content": "Please write the raw input:"})
+    request_messages.append({"role": "user", "name": "raw_input", "content": raw_input})
 
     return request_messages
 
