@@ -8,7 +8,7 @@ TULP allows you to harness the power of chatGPT by piping standard input content
 
 ## Installation:
 
-```
+```console
 pip install tulp
 ```
 
@@ -17,11 +17,11 @@ pip install tulp
 TULP has 2 main operation modes:
 
 1. **request:** Process the user request:
-```
+```console
 tulp [A written request or question]
 ```
 2. **stdin processing:** Process or filter all the stdin input according to the user instructions, writing the processed output to stdout.
-```
+```console
 cat [MYFILE] | tulp [Processing instructions written in natural language]
 ```
 
@@ -52,37 +52,52 @@ MODEL = gpt-3.5-turbo
 ```
 ## Examples:
 The usage is endless, but anyway, here you have some ideas as inspiration:
+
+### Random
+#### Create a plot directly from raw memory output printed by gdb:
+```console
+cat <<EOF | tulp convert this to a python list of 2 element tuples |  ./main.py write a python function to scatter plot these points using matplotlib | python 
+(gdb) p *polygon._points._M_ptr._M_impl._M_start@4
+$21 = {{x = 0.441429973, y = -0.176619753}, {x = 0.476210177, y = -0.104575738}, {x = 0.674865067, y = -0.0814191923}, {x = 0.640084863, y = -0.199776307}}
+EOF
+```
+Results:
+![matplotlib @rela](./examples/rela_plot.png)
+
+
+
 ### Typical Unix tooling replacement:
 #### Sed
-```
+```console
 cat README.md | tulp replace all the occurrences of TULP for **TULP**
 ```
 #### Awk
-```
+```console
 cat README.md | tulp print the second word of each line
 ```
 #### grep, but advanced
-```
+```console
 cat tulp.py | tulp print the name of the functions and also the return line 
 ```
 
 ### Grammatical and syntax corrections:
-```
+```console
 cat README.md | tulp fix any grammatical or syntactical error > README.md.fixed
 ```
 
 Or even better:
-```
+```console
 cat README.md | TULP_MAX_CHARS=10000 TULP_MODEL=gpt-4 tulp fix typos and syntax errors > README.fix.md
 ```
 
 ### Translations
-```
+```console
 cat README.md | tulp translate to Spanish > README.es.md
 ```
 ### Data filtering from formatted input
 #### csv
-```
+```console
+
 cat list.csv | tulp print only the second column
 Count
 3
@@ -92,11 +107,11 @@ Count
 
 ### csv
 
-```
+```console
 cat persons.json | tulp 'list the names and ages of each person in a csv table, using ; as separator'
 ```
 ### Data creation and extraction from unstructured data (a story of oranges and friends):
-```
+```console
 fede@liebre:~/repos/tulp$ tulp write a poem that names 3 persons \(given each a name\) and list how they shared 10 oranges | tee examples/oranges_poem.txt
 Roses are red,
 Violets are blue,
@@ -130,10 +145,10 @@ Sue,4
 ```
 
 # Origin of the name
-I used ```tulp.py``` to create "TULP". In some way, everything is recursive in "TULP", so it makes sense to use a recursive acronym.
+I used `tulp.py` to create "TULP". In some way, everything is recursive in "TULP", so it makes sense to use a recursive acronym.
 
-Therefore, after several iterations with ```tulp.py```, "TULP" and I decided that the best name would be "TULP", and this is how we decided what "TULP" stands for:
-```
+Therefore, after several iterations with `tulp.py`, "TULP" and I decided that the best name would be "TULP", and this is how we decided what "TULP" stands for:
+```console
 fede@liebre:~/repos/openai/tulp$ python3 ./tulp.py "TULP is a recursive acronym naming an opensource posix tool that processes stdin input according to natural language instructions, processing the input by instructing an artificial intelligence. Write some options of what TULP could stand for as recursive acronym"
 TULP could stand for:
 - TULP Understands Language Perfectly
@@ -145,4 +160,4 @@ TULP could stand for:
 
 # Why?
 
-I am a heavy user of Unix tooling (e.g: awk, jq, sed, grep, and so on), I have been using them since my early days and I used to think that I can't survive without them. But then, ChatGPT appeared and I started to use more and more GPT for things that I used to use Unix tooling for. Somehow I feel the pain of cut & paste and I was missing a way to do it faster and from within the terminal itself, so I came up with ```tulp```
+I am a heavy user of Unix tooling (e.g: awk, jq, sed, grep, and so on), I have been using them since my early days and I used to think that I can't survive without them. But then, ChatGPT appeared and I started to use more and more GPT for things that I used to use Unix tooling for. Somehow I feel the pain of cut & paste and I was missing a way to do it faster and from within the terminal itself, so I came up with `tulp`
