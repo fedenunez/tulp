@@ -55,13 +55,16 @@ The usage is endless, but anyway, here you have some ideas as inspiration:
 
 ### Random
 #### Create a plot directly from raw memory output printed by gdb:
+Command:
 ```bash
 cat <<EOF | tulp convert this to a python list of 2 element tuples |  ./main.py write a python function to scatter plot these points using matplotlib | python 
 (gdb) p *polygon._points._M_ptr._M_impl._M_start@4
 $21 = {{x = 0.441429973, y = -0.176619753}, {x = 0.476210177, y = -0.104575738}, {x = 0.674865067, y = -0.0814191923}, {x = 0.640084863, y = -0.199776307}}
 EOF
 ```
-Results:
+
+Result:
+
 ![matplotlib @rela](./examples/rela_plot.png)
 
 
