@@ -1,4 +1,4 @@
-.PHONY: build upload install test
+.PHONY: build upload install test testall
 
 build:
 	rm -rf dist/ build/
@@ -6,8 +6,10 @@ build:
 	python3 -m build .
 
 test:
-	pytest -v ./test/test_tulp.py
-	TULP_MODEL=gpt-4 pytest -v ./test/test_tulp_only_gpt4.py
+	pytest -v -s ./test/test_basic*.py ./test/test_advance*.py
+
+testall:
+	pytest -v -s ./test/*.py
 
 upload:
 	python3 -m pip install twine
