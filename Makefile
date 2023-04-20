@@ -1,4 +1,4 @@
-.PHONY: build upload install test testall
+.PHONY: build upload install test test-all test-request test-filter
 
 build:
 	rm -rf dist/ build/
@@ -6,9 +6,15 @@ build:
 	python3 -m build .
 
 test:
-	pytest -v -s ./test/test_basic*.py ./test/test_advance*.py
+	pytest -v -s ./test/test_filterMode_basic.py ./test/test_filterMode_advanced.py ./test/test_requestMode.py
 
-testall:
+test-request:
+	pytest -v -s ./test/test_requestMode*.py
+
+test-filter:
+	pytest -v -s ./test/test_filterMode*.py
+
+test-all:
 	pytest -v -s ./test/*.py
 
 upload:
