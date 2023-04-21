@@ -64,9 +64,9 @@ def test_filter_create_python_plot_from_points():
     assert "```" not in  res
     # imports the library:
     import re
-    assert re.search(r'import.*pyploy', result)
+    assert re.search(r'import.*pyplot', res)
     # calls .scatter(
-    assert ".scatter*" in result
+    assert ".scatter(" in res
     # use the points
-    assert POINTS in result
+    assert POINTS in res
 
