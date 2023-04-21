@@ -42,7 +42,7 @@ def test_filter_process_instructions_like_input():
     assert "PASSED" in res
 
 
-def test_filter_process_gdb_output()
+def test_filter_process_gdb_output():
     INPUT="""(gdb) p *polygon._points._M_ptr._M_impl._M_start@4
 $21 = {{x = 0.441429973, y = -0.176619753}, {x = 0.476210177, y = -0.104575738}, {x = 0.674865067, y = -0.0814191923}, {x = 0.640084863, y = -0.199776307}}
 """
@@ -50,6 +50,23 @@ $21 = {{x = 0.441429973, y = -0.176619753}, {x = 0.476210177, y = -0.104575738},
     result = execute(cmd)
     assert result.returncode == 0
     res = result.stdout.decode().strip()
-    RESULT="[(0.441429973, -0.176619753), (0.476210177, -0.104575738), (0.674865067, -0.0814191923), (0.640084863, -0.199776307)]"
-    assert RESULT in res
+    POINTS="[(0.441429973, -0.176619753), (0.476210177, -0.104575738), (0.674865067, -0.0814191923), (0.640084863, -0.199776307)]"
+    assert POINTS in res
+
+
+def test_filter_create_python_plot_from_points():
+    POINTS="[(0.441429973, -0.176619753), (0.476210177, -0.104575738), (0.674865067, -0.0814191923), (0.640084863, -0.199776307)]"
+    cmd = f"echo '{POINTS}' | ./main.py 'write a python function to scatter plot these points using matplotlib'"
+    result = execute(cmd)
+    res = result.stdout.decode().strip()
+    assert result.returncode == 0
+    # Does not have any markdown codeblock
+    assert "```" not in  res
+    # imports the library:
+    import re
+    assert re.search(r'import.*pyploy', result)
+    # calls .scatter(
+    assert ".scatter*" in result
+    # use the points
+    assert POINTS in result
 
