@@ -31,7 +31,7 @@ def block_exists(blocks_dict, key):
     return key in blocks_dict and len(blocks_dict[key].strip()) > 0
 
 ## VALID_BLOCKS: define the valid answer blocks  blocks
-VALID_BLOCKS=["(#output)","(#error)","(#context)","(#comment)","(#end)"]
+VALID_BLOCKS=["(#output)","(#inner_message)","(#error)","(#context)","(#comment)","(#end)"]
 ## parse_response)response_text): parse a gpt response, returning a dict with each response section 
 def parse_response(response_text):
     blocks_dict={}
@@ -198,16 +198,23 @@ def run():
             sys.exit(1)
         else:
             valid_answer = False
+
+            if block_exists(blocks_dict,"(#inner_message)"):
+                log.debug("(#inner_message) found!")
+
             if block_exists(blocks_dict,"(#output)"):
                 valid_answer = True
                 print(cleanup_output(blocks_dict["(#output)"]))
+
             if block_exists(blocks_dict,"(#comment)"):
                 valid_answer = True
                 log.info(blocks_dict["(#comment)"])
+
             if block_exists(blocks_dict,"(#context)"):
                 prev_context = blocks_dict["(#context)"]
             else:
                 prev_context = None
+
             if not valid_answer:
                 log.error("Unknown error while processing, try with a different request, model response:")
                 log.error(response_text)
