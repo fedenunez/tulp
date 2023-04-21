@@ -43,7 +43,7 @@ The following are the parameters that can be configured:
 As environment variables, they will become: TULP_LOG_LEVEL, TULP_OPENAI_API_KEY, TULP_MAX_CHARS, or TULP_MODEL.
 
 Here is an example configuration file with the default values:
-```TOML
+```INI
 [DEFAULT]
 LOG_LEVEL = INFO
 OPENAI_API_KEY = <<<YOUR API KEY >>>>
