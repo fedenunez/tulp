@@ -18,7 +18,7 @@ do
     # Print the command being executed
     #echo "Executing command: $command"
  
-    echo "$command" | randtype -m 2 -t 18,1000
+    echo "$command" | randtype -m 2 -t 18,2000
     #   # Simulate manual typing
     #   for (( i=0; i<${#command}; i++ )); do
     #       echo -n "${command:$i:1}"
@@ -26,6 +26,7 @@ do
     #   done
     #   echo ""
     
+    sleep 0.3
     # Execute the command and wait for the result
     eval $command
 done
