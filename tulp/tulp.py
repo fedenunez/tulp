@@ -28,7 +28,7 @@ def cleanup_output(output):
 
 ## block_exists(blocks_dict, key):  test if a KEY exist and is not empty
 def block_exists(blocks_dict, key):
-    return key in blocks_dict and len(blocks_dict[key].strip()) > 0
+    return key in blocks_dict and len(blocks_dict[key]["content"].strip()) > 0
 
 ## VALID_BLOCKS: define the valid answer blocks  blocks
 VALID_BLOCKS=["(#output)","(#inner_message)","(#error)","(#context)","(#comment)","(#end)"]
@@ -41,14 +41,25 @@ def parse_response(response_text):
     # parse blocks:
     parsingBlock=None
     for line in lines:
-        if (line in VALID_BLOCKS):
-            parsingBlock=line
+        splitted_line = line.split(" ")
+        key = None
+        if (len(splitted_line) >= 1):
+            key = splitted_line[0]
+            if (len(splitted_line) > 2):
+                outputType = " ".join(splitted_line[1:])
+            else:
+                outputType = None
+        if (key in VALID_BLOCKS):
+            parsingBlock=key
             if parsingBlock not in blocks_dict:
-               blocks_dict[parsingBlock]=""
+               blocks_dict[parsingBlock]={}
+               blocks_dict[parsingBlock]["type"]=outputType
+               blocks_dict[parsingBlock]["content"] = ""
+
 
         else:
             if parsingBlock:
-                blocks_dict[parsingBlock] += line + "\n"
+                blocks_dict[parsingBlock]["content"] += line + "\n"
             else:
                 if config.model == "gpt-3.5-turbo": 
                     log.error("""
@@ -194,7 +205,7 @@ def run():
 
         if block_exists(blocks_dict,"(#error)"):
             log.error("Error: Couldn't process your request:")
-            log.error(blocks_dict["(#error)"])
+            log.error(blocks_dict["(#error)"]["content"])
             sys.exit(1)
         else:
             valid_answer = False
@@ -204,11 +215,15 @@ def run():
 
             if block_exists(blocks_dict,"(#output)"):
                 valid_answer = True
-                print(cleanup_output(blocks_dict["(#output)"]))
+                oType = ""
+                if blocks_dict["(#output)"]["type"]:
+                    oType = f'(type: {blocks_dict["(#output)"]["type"]})'
+                log.info(f"Writting generated output {oType}") 
+                print(cleanup_output(blocks_dict["(#output)"]["content"]))
 
             if block_exists(blocks_dict,"(#comment)"):
                 valid_answer = True
-                log.info(blocks_dict["(#comment)"])
+                log.info(blocks_dict["(#comment)"]["content"])
 
             if block_exists(blocks_dict,"(#context)"):
                 prev_context = blocks_dict["(#context)"]
