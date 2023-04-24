@@ -13,12 +13,12 @@ reset; clear
 # Loop through the commands and execute them
 for command in "${commands[@]}"
 do
-    echo -ne "$PS1 "
+    echo -ne "\n$PS1 "
     sleep 0.1
     # Print the command being executed
     #echo "Executing command: $command"
  
-    echo "$command" | randtype -m 2 -t 18,2000
+    echo "$command" | randtype -m 3 -t 18,5000
     #   # Simulate manual typing
     #   for (( i=0; i<${#command}; i++ )); do
     #       echo -n "${command:$i:1}"
