@@ -4,7 +4,7 @@ A command line tool, in the best essence of POSIX tooling, that will help you to
 
 TULP allows you to harness the power of chatGPT by piping standard input content directly to chatGPT, getting the answer back on the shell.
 
-<a href="https://asciinema.org/a/576555" target="_blank"><img src="https://asciinema.org/a/576555.svg" width=640  /></a>
+[![tulp demo video](https://markdown-videos.deta.dev/youtube/mHAvlRXXp6I)](https://www.youtube.com/watch?v=mHAvlRXXp6I)
 
 ## Installation:
 
