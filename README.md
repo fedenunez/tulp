@@ -1,4 +1,4 @@
-# TULP: TULP Understands Language Perfectly
+# TULP: TULP Understands Language Promptly
 
 A command line tool, in the best essence of POSIX tooling, that will help you to **process**, **filter**, and **create** data in this new Artificial Intelligence world, backed by chatGPT.
 
