@@ -1,15 +1,16 @@
 #!/usr/bin/python3
 import openai
-import argparse
 import sys
 import os
 import math
+from . import tulpargs
 from . import tulplogger
 from . import tulpconfig
 from . import version
 
 log = tulplogger.Logger()
 config = tulpconfig.TulipConfig()
+args = tulpargs.TulpArgs().get()
 
 
 
@@ -128,12 +129,6 @@ def run():
     prev_context=None
 
 
-    # Define command line arguments
-    parser = argparse.ArgumentParser(description="A command line interface for the OpenAI GPT language model")
-    parser.add_argument("prompt", nargs="*", help="User prompt to send to the language model", type=str)
-
-    # Parse command line arguments
-    args = parser.parse_args()
 
     # If input is available on stdin, read it
     if not sys.stdin.isatty():
@@ -143,7 +138,7 @@ def run():
 
     # If prompt is provided as argument, use it to construct the input text
     if args.prompt:
-        prompt = " ".join(args.prompt)
+        prompt = args.prompt
 
     # If prompt is not provided and no input is available on stdin, prompt the user for input
     instructions=None
