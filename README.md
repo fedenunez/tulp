@@ -1,10 +1,10 @@
-# TULP: TULP Understands Language Perfectly
+# TULP: TULP Understands Language Promptly
 
 A command line tool, in the best essence of POSIX tooling, that will help you to **process**, **filter**, and **create** data in this new Artificial Intelligence world, backed by chatGPT.
 
 TULP allows you to harness the power of chatGPT by piping standard input content directly to chatGPT, getting the answer back on the shell.
 
-<a href="https://asciinema.org/a/576555" target="_blank"><img src="https://asciinema.org/a/576555.svg" width=640  /></a>
+[![tulp demo video](https://markdown-videos.deta.dev/youtube/mHAvlRXXp6I)](https://www.youtube.com/watch?v=mHAvlRXXp6I)
 
 ## Installation:
 
@@ -43,7 +43,7 @@ The following are the parameters that can be configured:
 As environment variables, they will become: TULP_LOG_LEVEL, TULP_OPENAI_API_KEY, TULP_MAX_CHARS, or TULP_MODEL.
 
 Here is an example configuration file with the default values:
-```TOML
+```INI
 [DEFAULT]
 LOG_LEVEL = INFO
 OPENAI_API_KEY = <<<YOUR API KEY >>>>
