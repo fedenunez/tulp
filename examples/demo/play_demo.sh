@@ -7,7 +7,7 @@
 PS1='\033[01;32mfede@liebre\033[00m:\033[01;34m~ \033[00m$'
 
 
-source ./demo_commands.sh
+source $1
 
 reset; clear
 # Loop through the commands and execute them
