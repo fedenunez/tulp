@@ -80,6 +80,7 @@ TULP_LOG_LEVEL=DEBUG tulp ...)""")
 ## pre_process_raw_input(input_text):  split all the input and create the raw_input_chunks with chunks of text ready to be send 
 def pre_process_raw_input(input_text):
     raw_input_chunks=[]
+
     # Split input text into chunks to fit within max chars window
     max_chars = config.max_chars  # Maximum number of chars that we will send to GPT
     if len(input_text) > max_chars:
@@ -101,28 +102,49 @@ the processing chunks, which may improve the results.
 usually improves the quality of the result.
 """
         log.warning(warnMsg)
-    input_lines = input_text.splitlines()
 
-    # try to split it in lines of less than max_size
-    compressed_lines = [""]
-
-    for iline in input_lines:
-        compresed_index = len(compressed_lines) - 1
-        clen = len(compressed_lines[compresed_index]) 
-        if clen + len(iline) < max_chars:
-            compressed_lines[compresed_index] += iline + "\n"
+        mime = magic.Magic(mime=True)
+        format = mime.from_buffer(input_text)
+        if ("python" in mime):
+            #from langchain.text_splitter import PythonCodeTextSplitter
+            #text_splitter = PythonCodeTextSplitter(chunk_size=max_chars, chunk_overlap=0)
+            from langchain.text_splitter import RecursiveCharacterTextSplitter
+            text_splitter = RecursiveCharacterTextSplitter(chunk_size=max_chars, chunk_overlap=0, separators = [
+            "\nclass ",
+            "\ndef ",
+            "\n\tdef ",
+            "\n def ",
+            "\n\t\tdef ",
+            "\n  def ",
+            "\n\t\t\tdef ",
+            "\n   def ",
+            "\n    def ",
+            "\n     def ",
+            # Now split by the normal type of lines
+            "\n\n",
+            "\n",
+            " ",
+            ""]
+        elif ("markdown" in mime):
+            from langchain.text_splitter import MarkdownTextSplitter
+            text_splitter = MarkdownTextSplitter(chunk_size=max_chars, chunk_overlap=0)
+        elif ("json" in mime):
+            from langchain.text_splitter import RecursiveCharacterTextSplitter
+            text_splitter = RecursiveCharacterTextSplitter(chunk_size=max_chars, chunk_overlap=0, separators = [ "{","\n", ",", " ", ""  ]
+        elif ("lua" in mime):
+            from langchain.text_splitter import RecursiveCharacterTextSplitter
+            text_splitter = RecursiveCharacterTextSplitter(chunk_size=max_chars, chunk_overlap=0, separators = [ "\nfunction","\n\tfunction", "function", "\n\n", "\n", " ", "" ]
         else:
-            if clen != 0:
-                if (len(iline) < max_chars):
-                    compressed_lines.append(iline + "\n")
-                else:
-                    for i in range(0,math.floor(len(iline)/max_chars)+1):
-                        input_chunk = iline[i*max_chars:(i+1)*max_chars] 
-                        compressed_lines.append(input_chunk)
-                    compressed_lines[compresed_index] += "\n"
-
-    for line in compressed_lines:
-        raw_input_chunks.append(line)
+            from langchain.text_splitter import RecursiveCharacterTextSplitter
+            text_splitter = RecursiveCharacterTextSplitter(
+                # Set a really small chunk size, just to show.
+                chunk_size = max_chars,
+                chunk_overlap  = 0,
+                length_function = len,
+                )
+        raw_input_chunks = text_splitter.create_documents(input_text)
+    else:
+        raw_input_chunks.append(input_text)
 
     return raw_input_chunks
 
