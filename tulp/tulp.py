@@ -157,17 +157,51 @@ def run():
     elif args.request and input_text:
         user_request = args.request
 
+    raw_input_chunks = pre_process_raw_input(input_text)
 
     getInstructionMessages=None
     if input_text and user_request:
-        from . import filteringPrompt
-        getInstructionMessages=filteringPrompt.getMessages
+        if (args.e):
+            from . import createFilteringProgramPrompt
+            getInstructionMessages=createFilteringProgramPrompt.getMessages
+            request = getInstructionMessages(user_request, raw_input_chunks[0] , len(raw_input_chunks), 1, prev_context)
+            retries = 0
+            while retries < 4:
+                for req in request:
+                    log.debug(f"REQ: {req}")
+                log.debug(f"Sending the request to OpenAI...")
+                response = openai.ChatCompletion.create(
+                    model=config.model,
+                    messages=request,
+                    temperature=0
+                )
+                log.debug(f"ANS: {response}")
+                response_text = response.choices[0].message.content
+                finish_reason = response.choices[0].finish_reason
+                blocks_dict = parse_response(response_text)
+                if block_exists(blocks_dict,"(#output)"):
+                    valid_answer = True
+                    oType = ""
+                    log.info(f"Executing generated code:")
+                    from . import executePython
+                    boutput, berror, ecode  = executePython.execute_python_code(cleanup_output(blocks_dict["(#output)"]["content"]), input_text)
+                    print ( boutput, berror, ecode)
+                    if (ecode != 0 and berror.find("Traceback") != -1 ):
+                        retries += 1
+                        log.info(f"Error while executing the code, I will try to fix it")
+                        request.append(response.choices[0].message)
+                        request.append({"role": "user","content": f"The execution of the program failed with error:\n{berror}\n\nPlease try to write a new (#output) that fixes the error"})
+                    else:
+                        break;
+            sys.exit(ecode)
+        else:
+            from . import filteringPrompt
+            getInstructionMessages=filteringPrompt.getMessages
     else:
         from . import requestPrompt
         getInstructionMessages=requestPrompt.getMessages
 
 
-    raw_input_chunks = pre_process_raw_input(input_text)
 
     for i in range(0,len(raw_input_chunks)):
         if (len(raw_input_chunks) > 1):
