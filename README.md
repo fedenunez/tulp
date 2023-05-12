@@ -188,4 +188,5 @@ I am a heavy user of Unix tooling (e.g: awk, jq, sed, grep, and so on), I have b
 
 # Changelog
 ## v0.6 | 2023-11-05
-  - Adds all the settings as command line arguments 
+- Adds all the settings as command line arguments
+
