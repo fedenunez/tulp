@@ -29,10 +29,28 @@ In both cases, TULP will write to the standard output the answers and will write
 
 It is **important** to note that if your input is larger than 5000 characters, the input will be split into multiple chunks and processed by chatGPT in multiple requests. In this case, the result quality will really depend on the task (e.g., will work fine for translations or grammatical corrections, it will work terribly for summarizing). Anyway, **tulp works great when the input is less than 5000 chars**.
 
-By default, tulp uses **gpt-3.5-turbo**, because it is cheaper and **faster**, but for complex tasks, it is always a **good idea to force the gpt-4 model**: TULP_MODEL=gpt-4 tulp {a complex task}
+By default, tulp uses **gpt-3.5-turbo**, because it is cheaper and **faster**, but for complex tasks, it is always a **good idea to force the gpt-4 model**: tulp --model gpt-4 {a complex task}
+
+### Options:
+```
+usage: tulp [-h] [--model {gpt-3.5-turbo,gpt-4}] [--max-chars MAX_CHARS] [-v] [-q] request
+
+positional arguments:
+  request               User request in natural language
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --model {gpt-3.5-turbo,gpt-4}
+                        Select the LLM model to use, currently gpt-3.5-turbo or gpt-4
+  --max-chars MAX_CHARS
+                        Number of chars per message chunk per request
+  -v                    Be verbose!
+  -q                    Be quiet! Only print the answer and errors.
+```
+
 
 ## Configuration 
-The configuration file is located at ~/.tulp.conf. Define your own ~/.tulp.conf file or define the same environment variable but using the prefix TULP_. 
+The configuration file is located at ~/.tulp.conf. 
 
 The following are the parameters that can be configured:
 - **LOG_LEVEL**: The log level of Tulp. Valid options are DEBUG, INFO, WARNING, ERROR, and CRITICAL. The default value is INFO.
@@ -40,7 +58,10 @@ The following are the parameters that can be configured:
 - **MAX_CHARS**: The maximum number of characters processed in one chunk. The default value is 5000.
 - **MODEL**: The OpenAI model to be used by Tulp. The default value is gpt-3.5-turbo, but gpt-4 is also available.
 
+All these settings could be overridden by an environment variable using the prefix TULP\_ or by the different command line arguments described above. 
 As environment variables, they will become: TULP_LOG_LEVEL, TULP_OPENAI_API_KEY, TULP_MAX_CHARS, or TULP_MODEL.
+Command line arguments will override environmental variables and the configuration file.
+
 
 Here is an example configuration file with the default values:
 ```INI
@@ -164,3 +185,7 @@ TULP could stand for:
 # Why?
 
 I am a heavy user of Unix tooling (e.g: awk, jq, sed, grep, and so on), I have been using them since my early days and I used to think that I couldn't survive without them. But then, ChatGPT appeared, and I started to use more and more GPT for things that I used to use Unix tooling for. Somehow I feel the pain of cut & paste, and I was missing a way to do it faster and from within the terminal itself, so I came up with `tulp`.
+
+# Changelog
+## v0.6 | 2023-11-05
+  - Adds all the settings as command line arguments 

@@ -41,6 +41,6 @@ def getMessages(user_instructions=None, raw_input_chunk=None, nof_chunks=None, n
     request_messages = []
     request_messages.append( {"role": "system", "content": system_instructions} )
     request_messages.append( {"role": "user", "content": user_system_instructions} )
-    request_messages.append( {"role": "user", "content": raw_input_chunk} )
+    request_messages.append( {"role": "user", "content": user_instructions} )
     return request_messages
 

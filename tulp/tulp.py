@@ -29,7 +29,7 @@ def cleanup_output(output):
 
 ## block_exists(blocks_dict, key):  test if a KEY exist and is not empty
 def block_exists(blocks_dict, key):
-    return key in blocks_dict and len(blocks_dict[key].strip()) > 0
+    return key in blocks_dict and len(blocks_dict[key]["content"].strip()) > 0
 
 ## VALID_BLOCKS: define the valid answer blocks  blocks
 VALID_BLOCKS=["(#output)","(#inner_message)","(#error)","(#context)","(#comment)","(#end)"]
@@ -42,14 +42,25 @@ def parse_response(response_text):
     # parse blocks:
     parsingBlock=None
     for line in lines:
-        if (line in VALID_BLOCKS):
-            parsingBlock=line
+        splitted_line = line.split(" ")
+        key = None
+        if (len(splitted_line) >= 1):
+            key = splitted_line[0]
+            if (len(splitted_line) > 2):
+                outputType = " ".join(splitted_line[1:])
+            else:
+                outputType = None
+        if (key in VALID_BLOCKS):
+            parsingBlock=key
             if parsingBlock not in blocks_dict:
-               blocks_dict[parsingBlock]=""
+               blocks_dict[parsingBlock]={}
+               blocks_dict[parsingBlock]["type"]=outputType
+               blocks_dict[parsingBlock]["content"] = ""
+
 
         else:
             if parsingBlock:
-                blocks_dict[parsingBlock] += line + "\n"
+                blocks_dict[parsingBlock]["content"] += line + "\n"
             else:
                 if config.model == "gpt-3.5-turbo": 
                     log.error("""
@@ -91,10 +102,11 @@ the processing chunks, which may improve the results.
 usually improves the quality of the result.
 """
         log.warning(warnMsg)
-    input_lines = input_text.splitlines()
 
     # try to split it in lines of less than max_size
     compressed_lines = [""]
+
+    input_lines = input_text.splitlines()
 
     for iline in input_lines:
         compresed_index = len(compressed_lines) - 1
@@ -117,7 +129,7 @@ usually improves the quality of the result.
     return raw_input_chunks
 
 def run():
-    log.info(f"Running tulp v{version.VERSION} using model: {config.model}")
+    log.debug(f"Running tulp v{version.VERSION} using model: {config.model}")
     openai_key = config.openai_api_key
     if not openai_key:
         log.error(f'OpenAI API key not found. Please set the TULP_OPENAI_API_KEY environment variable or add it to {tulpconfig.CONFIG_FILE}')
@@ -131,28 +143,23 @@ def run():
 
 
     # If input is available on stdin, read it
+    input_text = ""
     if not sys.stdin.isatty():
         input_text = sys.stdin.read().strip()
-    else:
-        input_text = ""
 
-    # If prompt is provided as argument, use it to construct the input text
-    if args.prompt:
-        prompt = args.prompt
+    user_request=None
+    if not args.request and not input_text:
+        user_request = input("Enter your request: ").strip()
+    elif args.request and not input_text:
+        user_request = args.request
+    elif not args.request and input_text:
+        user_request = "Summarize the input"
+    elif args.request and input_text:
+        user_request = args.request
 
-    # If prompt is not provided and no input is available on stdin, prompt the user for input
-    instructions=None
-    if not args.prompt and not input_text:
-        input_text = input("Enter your request: ").strip()
-    elif args.prompt and not input_text:
-        input_text = prompt
-    elif not args.prompt and input_text:
-        instructions = "Summarize the input"
-    elif args.prompt and input_text:
-        instructions = prompt
 
     getInstructionMessages=None
-    if instructions:
+    if input_text and user_request:
         from . import filteringPrompt
         getInstructionMessages=filteringPrompt.getMessages
     else:
@@ -170,8 +177,8 @@ def run():
         finish_reason = ""
         response_text = ""
         raw_input_chunk = raw_input_chunks[i]
-        if raw_input_chunk:
-            request = getInstructionMessages(instructions, raw_input_chunk , len(raw_input_chunks), i+1, prev_context)
+        if user_request:
+            request = getInstructionMessages(user_request, raw_input_chunk , len(raw_input_chunks), i+1, prev_context)
             for req in request:
                 log.debug(f"REQ: {req}")
             log.debug(f"Sending the request to OpenAI...")
@@ -189,7 +196,7 @@ def run():
 
         if block_exists(blocks_dict,"(#error)"):
             log.error("Error: Couldn't process your request:")
-            log.error(blocks_dict["(#error)"])
+            log.error(blocks_dict["(#error)"]["content"])
             sys.exit(1)
         else:
             valid_answer = False
@@ -199,11 +206,15 @@ def run():
 
             if block_exists(blocks_dict,"(#output)"):
                 valid_answer = True
-                print(cleanup_output(blocks_dict["(#output)"]))
+                oType = ""
+                if blocks_dict["(#output)"]["type"]:
+                    oType = f'(type: {blocks_dict["(#output)"]["type"]})'
+                log.info(f"Writting generated output {oType}") 
+                print(cleanup_output(blocks_dict["(#output)"]["content"]))
 
             if block_exists(blocks_dict,"(#comment)"):
                 valid_answer = True
-                log.info(blocks_dict["(#comment)"])
+                log.info(blocks_dict["(#comment)"]["content"])
 
             if block_exists(blocks_dict,"(#context)"):
                 prev_context = blocks_dict["(#context)"]
