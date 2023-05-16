@@ -7,6 +7,7 @@ from . import tulpargs
 from . import tulplogger
 from . import tulpconfig
 from . import version
+from . import TulpOutputFileWriter
 
 log = tulplogger.Logger()
 config = tulpconfig.TulipConfig()
@@ -32,7 +33,7 @@ def block_exists(blocks_dict, key):
     return key in blocks_dict and len(blocks_dict[key]["content"].strip()) > 0
 
 ## VALID_BLOCKS: define the valid answer blocks  blocks
-VALID_BLOCKS=["(#output)","(#inner_message)","(#error)","(#context)","(#comment)","(#end)"]
+VALID_BLOCKS=["(#output)","(#thoughts)","(#inner_message)","(#error)","(#context)","(#comment)","(#end)"]
 ## parse_response)response_text): parse a gpt response, returning a dict with each response section 
 def parse_response(response_text):
     blocks_dict={}
@@ -128,81 +129,65 @@ usually improves the quality of the result.
 
     return raw_input_chunks
 
-def run():
-    log.debug(f"Running tulp v{version.VERSION} using model: {config.model}")
-    openai_key = config.openai_api_key
-    if not openai_key:
-        log.error(f'OpenAI API key not found. Please set the TULP_OPENAI_API_KEY environment variable or add it to {tulpconfig.CONFIG_FILE}')
-        log.error(f"If you don't have one, please create one at: https://platform.openai.com/account/api-keys")
-        sys.exit(1)
 
-
-    openai.api_key = openai_key
-    prev_context=None
-
-
-
-    # If input is available on stdin, read it
-    input_text = ""
-    if not sys.stdin.isatty():
-        input_text = sys.stdin.read().strip()
-
-    user_request=None
-    if not args.request and not input_text:
-        user_request = input("Enter your request: ").strip()
-    elif args.request and not input_text:
-        user_request = args.request
-    elif not args.request and input_text:
-        user_request = "Summarize the input"
-    elif args.request and input_text:
-        user_request = args.request
-
-    raw_input_chunks = pre_process_raw_input(input_text)
-
-    getInstructionMessages=None
-    if input_text and user_request:
-        if (args.e):
-            from . import createFilteringProgramPrompt
-            getInstructionMessages=createFilteringProgramPrompt.getMessages
-            request = getInstructionMessages(user_request, raw_input_chunks[0] , len(raw_input_chunks), 1, prev_context)
-            retries = 0
-            while retries < 4:
-                for req in request:
-                    log.debug(f"REQ: {req}")
-                log.debug(f"Sending the request to OpenAI...")
-                response = openai.ChatCompletion.create(
-                    model=config.model,
-                    messages=request,
-                    temperature=0
-                )
-                log.debug(f"ANS: {response}")
-                response_text = response.choices[0].message.content
-                finish_reason = response.choices[0].finish_reason
-                blocks_dict = parse_response(response_text)
-                if block_exists(blocks_dict,"(#output)"):
-                    valid_answer = True
-                    oType = ""
-                    log.info(f"Executing generated code:")
-                    from . import executePython
-                    boutput, berror, ecode  = executePython.execute_python_code(cleanup_output(blocks_dict["(#output)"]["content"]), input_text)
-                    print ( boutput, berror, ecode)
-                    if (ecode != 0 and berror.find("Traceback") != -1 ):
-                        retries += 1
-                        log.info(f"Error while executing the code, I will try to fix it")
-                        request.append(response.choices[0].message)
-                        request.append({"role": "user","content": f"The execution of the program failed with error:\n{berror}\n\nPlease try to write a new (#output) that fixes the error"})
-                    else:
-                        break;
-            sys.exit(ecode)
-        else:
-            from . import filteringPrompt
-            getInstructionMessages=filteringPrompt.getMessages
+def processExecutionRequest(promptFactory, user_request, raw_input_chunks=None):
+    retries = 0
+    max_retries = 5
+    if (not raw_input_chunks):
+        raw_input_chunks = [""]
+    requestMessages = promptFactory.getMessages(user_request, raw_input_chunks[0], len(raw_input_chunks))
+    while retries < max_retries:
+        for req in requestMessages:
+            log.debug(f"REQ: {req}")
+        log.debug(f"Sending the request to OpenAI...")
+        response = openai.ChatCompletion.create(
+            model=config.model,
+            messages=requestMessages,
+            temperature=0
+        )
+        log.debug(f"ANS: {response}")
+        response_text = response.choices[0].message.content
+        finish_reason = response.choices[0].finish_reason
+        blocks_dict = parse_response(response_text)
+        if block_exists(blocks_dict,"(#comment)"):
+            log.info(blocks_dict["(#comment)"]["content"])
+        if block_exists(blocks_dict,"(#output)"):
+            oType = ""
+            generatedCode = cleanup_output(blocks_dict["(#output)"]["content"])
+            log.debug(f"The generated code:\n{generatedCode}")
+            from . import executePython
+            input_text="".join(raw_input_chunks)
+            if args.w:
+                ok, filename = TulpOutputFileWriter.TulpOutputFileWriter().write_to_file(args.w, generatedCode)
+                if ok: 
+                    log.info(f"Wrote created program at: {filename}")
+                else:
+                    log.error(f"Error while writing created code: {filename}")
+            log.info(f"Executing generated code...")
+            boutput, berror, ecode  = executePython.execute_python_code(generatedCode, input_text)
+            log.debug(f"Execution results: {boutput}, {berror}, {ecode}")
+            if (ecode != 0 and berror.find("Traceback") != -1 ):
+                retries += 1
+                log.warning(f"Error while executing the code, I will try to fix it!")
+                requestMessages = promptFactory.getMessages(user_request, raw_input_chunks[0], len(raw_input_chunks))
+                requestMessages.append(response.choices[0].message)
+                requestMessages.append({"role": "user","content": f"The execution of the program failed with error:\n{berror}\n\nPlease try to write a new (#output) that fixes the error"})
+            else:
+                break;
+    if retries == max_retries:
+        log.error("while executing generated code, max retries reached, giving up.")
     else:
-        from . import requestPrompt
-        getInstructionMessages=requestPrompt.getMessages
+        if (ecode != 0):
+            log.error(f"Error executing the program:\n{berror}")
+        else:
+            log.info("Code was executed correctly.")
 
+    print(boutput)
+    return ecode
 
-
+def processRequest(promptFactory,user_request, raw_input_chunks=None):
+    if not raw_input_chunks:
+        raw_input_chunks = [""] 
     for i in range(0,len(raw_input_chunks)):
         if (len(raw_input_chunks) > 1):
             log.info(f"Processing {i+1} of {len(raw_input_chunks)}...")
@@ -212,13 +197,13 @@ def run():
         response_text = ""
         raw_input_chunk = raw_input_chunks[i]
         if user_request:
-            request = getInstructionMessages(user_request, raw_input_chunk , len(raw_input_chunks), i+1, prev_context)
-            for req in request:
+            requestMessages = promptFactory.getMessages(user_request, raw_input_chunk , len(raw_input_chunks), i+1)
+            for req in requestMessages:
                 log.debug(f"REQ: {req}")
             log.debug(f"Sending the request to OpenAI...")
             response = openai.ChatCompletion.create(
                 model=config.model,
-                messages=request,
+                messages=requestMessages,
                 temperature=0
             )
             log.debug(f"ANS: {response}")
@@ -270,6 +255,53 @@ instructions.
 
             log.error(errorMsg)
             sys.exit(2)
+
+def run():
+    log.debug(f"Running tulp v{version.VERSION} using model: {config.model}")
+    openai_key = config.openai_api_key
+    if not openai_key:
+        log.error(f'OpenAI API key not found. Please set the TULP_OPENAI_API_KEY environment variable or add it to {tulpconfig.CONFIG_FILE}')
+        log.error(f"If you don't have one, please create one at: https://platform.openai.com/account/api-keys")
+        sys.exit(1)
+
+
+    openai.api_key = openai_key
+
+    # If input is available on stdin, read it
+    input_text = ""
+    if not sys.stdin.isatty():
+        input_text = sys.stdin.read().strip()
+
+    user_request=None
+    if not args.request and not input_text:
+        user_request = input("Enter your request: ").strip()
+    elif args.request and not input_text:
+        user_request = args.request
+    elif not args.request and input_text:
+        user_request = "Summarize the input"
+    elif args.request and input_text:
+        user_request = args.request
+
+    raw_input_chunks = pre_process_raw_input(input_text)
+
+    if input_text and user_request:
+        # A filtering request:
+        if (args.e):
+            from . import createFilteringProgramPrompt
+            sys.exit(processExecutionRequest(createFilteringProgramPrompt, user_request, raw_input_chunks))
+        else:
+            from . import filteringPrompt
+            sys.exit(processRequest(filteringPrompt, user_request, raw_input_chunks))
+    else:
+        # A request
+        if (args.e):
+            from . import createProgramPrompt
+            sys.exit(processExecutionRequest(createProgramPrompt, user_request))
+        else:
+            from . import requestPrompt
+            sys.exit(processRequest(requestPrompt, user_request))
+
+
 
 if __name__ == "__main__":
     run()
