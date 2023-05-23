@@ -286,7 +286,7 @@ def run():
 
     if input_text and user_request:
         # A filtering request:
-        if (args.e):
+        if (args.x):
             from . import createFilteringProgramPrompt
             sys.exit(processExecutionRequest(createFilteringProgramPrompt, user_request, raw_input_chunks))
         else:
@@ -294,7 +294,7 @@ def run():
             sys.exit(processRequest(filteringPrompt, user_request, raw_input_chunks))
     else:
         # A request
-        if (args.e):
+        if (args.x):
             from . import createProgramPrompt
             sys.exit(processExecutionRequest(createProgramPrompt, user_request))
         else:
