@@ -14,7 +14,7 @@ pip install tulp
 
 ## Usage:
 
-TULP has 2 main operation modes:
+TULP has 3 main operation modes:
 
 1. **request:** Process the user request:
 ```bash
@@ -24,6 +24,11 @@ tulp [A written request or question]
 ```bash
 cat [MYFILE] | tulp [Processing instructions written in natural language]
 ```
+3. **Code Interpretation:** Add a -x to any of the previous operations, and Tulp will try to **create, debug, and execute** a program that gets the request done!.
+```
+cat examples/titanics.csv | tulp -x how many persons survived
+```
+
 
 In both cases, TULP will write to the standard output the answers and will write any other information to the standard error. You can safely pipe the output to your file or next piping command and will still get all the information and errors on stderr.
 
@@ -33,19 +38,24 @@ By default, tulp uses **gpt-3.5-turbo**, because it is cheaper and **faster**, b
 
 ### Options:
 ```
-usage: tulp [-h] [--model {gpt-3.5-turbo,gpt-4}] [--max-chars MAX_CHARS] [-v] [-q] request
+usage: tulp [-h] [-x] [-w W] [--model {gpt-3.5-turbo,gpt-4}] [--max-chars MAX_CHARS] [-v] [-q] ...
+
+TULP Understands Language Promptly: A command line tool, in the best essence of POSIX tooling, that will help you to **process**, **filter**, and **create** data in this new Artificial Intelligence world, backed by chatGPT.
 
 positional arguments:
-  request               User request in natural language
+  request               User request, instructions written in natural language
 
 optional arguments:
   -h, --help            show this help message and exit
+  -x                    Allow tulp to create a program and execute it to fulfill the task (code interpret)
+  -w W                  Write the output (or the created program for execution) to the file. If the file exists, a backup will be created before overwriting it.
   --model {gpt-3.5-turbo,gpt-4}
                         Select the LLM model to use, currently gpt-3.5-turbo or gpt-4
   --max-chars MAX_CHARS
                         Number of chars per message chunk per request
   -v                    Be verbose!
   -q                    Be quiet! Only print the answer and errors.
+
 ```
 
 
@@ -187,6 +197,8 @@ TULP could stand for:
 I am a heavy user of Unix tooling (e.g: awk, jq, sed, grep, and so on), I have been using them since my early days and I used to think that I couldn't survive without them. But then, ChatGPT appeared, and I started to use more and more GPT for things that I used to use Unix tooling for. Somehow I feel the pain of cut & paste, and I was missing a way to do it faster and from within the terminal itself, so I came up with `tulp`.
 
 # Changelog
-## v0.6 | 2023-11-05
+## v07  | 2023-05-23 
+- Adds Code Interpretation, -x option
+## v0.6 | 2023-05-11
 - Adds all the settings as command line arguments
 
