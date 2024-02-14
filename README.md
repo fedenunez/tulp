@@ -197,6 +197,11 @@ TULP could stand for:
 I am a heavy user of Unix tooling (e.g: awk, jq, sed, grep, and so on), I have been using them since my early days and I used to think that I couldn't survive without them. But then, ChatGPT appeared, and I started to use more and more GPT for things that I used to use Unix tooling for. Somehow I feel the pain of cut & paste, and I was missing a way to do it faster and from within the terminal itself, so I came up with `tulp`.
 
 # Changelog
+## v1.0 | 2024-02-14
+- Changed to use gpt-4-0125-preview model by default
+- Updated to use openapi v1.0
+- Changes default max-chars to 40000
+
 ## v07  | 2023-05-23 
 - Adds Code Interpretation, -x option
 ## v0.6 | 2023-05-11

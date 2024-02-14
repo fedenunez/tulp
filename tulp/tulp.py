@@ -1,5 +1,6 @@
 #!/usr/bin/python3
-import openai
+from openai import OpenAI
+
 import sys
 import os
 import math
@@ -9,11 +10,11 @@ from . import tulpconfig
 from . import version
 from . import TulpOutputFileWriter
 
+
 log = tulplogger.Logger()
 config = tulpconfig.TulipConfig()
 args = tulpargs.TulpArgs().get()
-
-
+client: object  # will be defined in main
 
 # Helper functions
 
@@ -140,11 +141,9 @@ def processExecutionRequest(promptFactory, user_request, raw_input_chunks=None):
         for req in requestMessages:
             log.debug(f"REQ: {req}")
         log.debug(f"Sending the request to OpenAI...")
-        response = openai.ChatCompletion.create(
-            model=config.model,
-            messages=requestMessages,
-            temperature=0
-        )
+        response = client.chat.completions.create(model=config.model,
+        messages=requestMessages,
+        temperature=0)
         log.debug(f"ANS: {response}")
         response_text = response.choices[0].message.content
         finish_reason = response.choices[0].finish_reason
@@ -201,11 +200,9 @@ def processRequest(promptFactory,user_request, raw_input_chunks=None):
             for req in requestMessages:
                 log.debug(f"REQ: {req}")
             log.debug(f"Sending the request to OpenAI...")
-            response = openai.ChatCompletion.create(
-                model=config.model,
-                messages=requestMessages,
-                temperature=0
-            )
+            response = client.chat.completions.create(model=config.model,
+            messages=requestMessages,
+            temperature=0)
             log.debug(f"ANS: {response}")
             response_text += response.choices[0].message.content
             finish_reason = response.choices[0].finish_reason
@@ -264,8 +261,10 @@ def run():
         log.error(f"If you don't have one, please create one at: https://platform.openai.com/account/api-keys")
         sys.exit(1)
 
+    global client
+    client = OpenAI(api_key=openai_key)
 
-    openai.api_key = openai_key
+
 
     # If input is available on stdin, read it
     input_text = ""
