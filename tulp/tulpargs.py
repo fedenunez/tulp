@@ -4,9 +4,9 @@ import re
 
 CONFIG_FILE=os.path.expanduser("~/.tulp.conf")
 
-def model_type(arg_value, pat=re.compile(r"^gpt-[a-z0-9\-_\.]*$")):
-    if not pat.match(arg_value):
-        raise argparse.ArgumentTypeError("Invalid model")
+def model_type(arg_value, pat=re.compile(r"^(gpt-[a-z0-9\-_\.]*)\|^(gemini-pro-.*)$")):
+ #   if not pat.match(arg_value):
+ #       raise argparse.ArgumentTypeError("Invalid model")
     return arg_value
 
 class TulpArgs:
@@ -26,6 +26,7 @@ Intelligence world, backed by chatGPT.
 
             parser.add_argument('-w', type=str, help='Write the output (or the created program for execution) to the file. If the file exists, a backup will be created before overwriting it.')
 
+            parser.add_argument('--baseURL', type=str, help='Use it to change the server, e.g.: use http://localhost:11434/v1/ to connect to your local ollama server')
 
             parser.add_argument('--model', type=model_type, help='Select the openai LLM model to use (default: gpt-4-0125-preview)')
 
@@ -34,6 +35,7 @@ Intelligence world, backed by chatGPT.
             parser.add_argument('-v', action='store_true', help='Be verbose!')
 
             parser.add_argument('-q', action='store_true', help='Be quiet! Only print the answer and errors.')
+            
 
             parser.add_argument('request', nargs=argparse.REMAINDER, help="User request, instructions written in natural language")
 

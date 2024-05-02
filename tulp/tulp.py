@@ -1,5 +1,4 @@
 #!/usr/bin/python3
-from openai import OpenAI
 
 import sys
 import os
@@ -14,7 +13,7 @@ from . import TulpOutputFileWriter
 log = tulplogger.Logger()
 config = tulpconfig.TulipConfig()
 args = tulpargs.TulpArgs().get()
-client: object  # will be defined in main
+llm: object  # will be defined in main
 
 # Helper functions
 
@@ -140,13 +139,11 @@ def processExecutionRequest(promptFactory, user_request, raw_input_chunks=None):
     while retries < max_retries:
         for req in requestMessages:
             log.debug(f"REQ: {req}")
-        log.debug(f"Sending the request to OpenAI...")
-        response = client.chat.completions.create(model=config.model,
-        messages=requestMessages,
-        temperature=0)
+        log.debug(f"Sending the request to model...")
+        response = llm.generate(messages)
         log.debug(f"ANS: {response}")
-        response_text = response.choices[0].message.content
-        finish_reason = response.choices[0].finish_reason
+        response_text = response["response_text"]
+        finish_reason = response["finish_reason"]
         blocks_dict = parse_response(response_text)
         if block_exists(blocks_dict,"(#comment)"):
             log.info(blocks_dict["(#comment)"]["content"])
@@ -199,13 +196,11 @@ def processRequest(promptFactory,user_request, raw_input_chunks=None):
             requestMessages = promptFactory.getMessages(user_request, raw_input_chunk , len(raw_input_chunks), i+1)
             for req in requestMessages:
                 log.debug(f"REQ: {req}")
-            log.debug(f"Sending the request to OpenAI...")
-            response = client.chat.completions.create(model=config.model,
-            messages=requestMessages,
-            temperature=0)
+            log.debug(f"Sending the request to llm...")
+            response = llm.generate(requestMessages)
             log.debug(f"ANS: {response}")
-            response_text += response.choices[0].message.content
-            finish_reason = response.choices[0].finish_reason
+            response_text += response["response_text"]
+            finish_reason = response["finish_reason"]
 
 
         blocks_dict = parse_response(response_text)
@@ -255,16 +250,14 @@ instructions.
 
 def run():
     log.debug(f"Running tulp v{version.VERSION} using model: {config.model}")
-    openai_key = config.openai_api_key
-    if not openai_key:
-        log.error(f'OpenAI API key not found. Please set the TULP_OPENAI_API_KEY environment variable or add it to {tulpconfig.CONFIG_FILE}')
-        log.error(f"If you don't have one, please create one at: https://platform.openai.com/account/api-keys")
-        sys.exit(1)
 
-    global client
-    client = OpenAI(api_key=openai_key)
-
-
+    global llm
+    if config.model.startswith('gpt'):
+        from .llms import LlmOpenAI
+        llm = LlmOpenAI.LlmOpenAI(config)
+    elif config.model.startswith('gemini'):
+        from .llms import LlmGemini
+        llm = LlmGemini.LlmGemini(config)
 
     # If input is available on stdin, read it
     input_text = ""
