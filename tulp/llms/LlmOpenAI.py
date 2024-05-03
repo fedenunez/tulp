@@ -8,7 +8,7 @@ log = tulplogger.Logger()
 # List all Models first
 
 def getModels():
-   return [ { "idRe":"gpt-.*", "description":  "Any OpenAI model, requires openai_api_key definition"} ]
+   return [ { "idRe":"gpt-.*", "description":  "Any OpenAI model (https://platform.openai.com/docs/models), requires openai_api_key definition"} ]
 
 def getArguments():
     return [{"name": "openai_api_key", "description": "OpenAI cloud API KEY", "default":None},

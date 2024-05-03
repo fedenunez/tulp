@@ -18,7 +18,8 @@ class Client:
         self.client = Groq(api_key=key)
 
     def getModel(self):
-        return self.config.model.lstrip("groq.")
+        return self.config.model[5:] if self.config.model.startswith("groq.") else self.config.model
+
 
 
     def convertMessagesFromOpenAI(self, messages):

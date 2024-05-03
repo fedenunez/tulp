@@ -37,7 +37,7 @@ formatter_class=argparse.RawTextHelpFormatter
             parser.add_argument('-w', type=str, help='Write the output (or the created program for execution) to the file. If the file exists, a backup will be created before overwriting it.')
 
 
-            parser.add_argument('--model', type=model_type, help='Select the openai LLM model to use (default: gpt-4-0125-preview)')
+            parser.add_argument('--model', type=model_type, help='Select the openai LLM model to use (default: gpt-4-turbo)')
 
             parser.add_argument('--max-chars', type=int, help='Number of chars per message chunk per request (Default 40000)')
 

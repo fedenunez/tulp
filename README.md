@@ -87,14 +87,46 @@ Here is an example configuration file with the default values:
 ```INI
 [DEFAULT]
 LOG_LEVEL = INFO
-API_KEYS = <<<YOUR API KEYS FOR GROQ, OLLAMA, ANTHROPIC, OPENAI, GEMINI>>>
+${MODEL}_API_KEYS = <<<YOUR API KEYS FOR GROQ, OLLAMA, ANTHROPIC, OPENAI, GEMINI>>>
 MAX_CHARS = 40000
 MODEL = gpt-4-0125-preview
 ```
+
+
 ## Examples:
 The usage is endless, but anyway, here you have some ideas as inspiration:
 
 ### Random
+#### The meaning of life for different models:
+
+```
++ tulp -q --model gpt-4-turbo tell me the meaning of life in just 3 words
+42, not known
+
+
++ tulp -q --model gpt-3.5-turbo tell me the meaning of life in just 3 words
+Live, love, learn.
+
++ tulp -q --model claude-3-opus-20240229 tell me the meaning of life in just 3 words
+Love conquers all.
+
++ tulp -q --model gemini-1.5-pro-latest tell me the meaning of life in just 3 words
+The answer is 42.
+
++ tulp -q --model groq.gemma-7b-it tell me the meaning of life in just 3 words
+The meaning of life is to find purpose and fulfillment in the present moment.
+
+
++ tulp -q --model groq.llama3-70b-8192 tell me the meaning of life in just 3 words
+Find Your Purpose
+
++ tulp -q --model groq.mixtral-8x7b-32768 tell me the meaning of life in just 3 words
+Impossible task.
+
++ tulp -q --model ollama.phi3:instruct tell me the meaning of life in just 3 words
+echo "Meaning of Life"
+```
+
 #### Create a plot directly from raw memory output printed by gdb:
 Command:
 ```bash
@@ -108,6 +140,11 @@ Result:
 
 ![matplotlib @rela](./examples/rela_plot.png)
 
+### Grammatical and Syntax Correction of Clipboard Content in Linux (The Corrected Version Will Be in the Clipboard)
+
+```bash
+xsel -b | tulp fix my english | xsel -b
+```
 
 
 ### Typical Unix tooling replacement:
@@ -209,6 +246,7 @@ I am a heavy user of Unix tooling (e.g: awk, jq, sed, grep, and so on), I have b
 # Changelog
 ## v2.0 | 2024-05-04
 - Added support for groq, ollama, anthropic, and gemini AI models.
+- Changed to use gpt-4-turbo model by default
 
 ## v1.0 | 2024-02-14
 - Changed to use gpt-4-0125-preview model by default

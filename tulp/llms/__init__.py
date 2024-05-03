@@ -62,4 +62,4 @@ def getModelClient(modelname, config):
     module = getModelModule(modelname)
     if module:
         return module.Client(config)
-    return None
+    raise Exception("Module not found!")

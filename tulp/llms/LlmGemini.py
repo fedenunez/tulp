@@ -5,7 +5,7 @@ from .. import tulplogger
 log = tulplogger.Logger()
 
 def getModels():
-   return [ { "idRe":"gemini.*", "description":  "Any Google gemini model, requires gemini_api_key definition"} ]
+   return [ { "idRe":"gemini.*", "description":  "Any Google gemini model (https://ai.google.dev/gemini-api/docs/models/gemini), requires gemini_api_key definition"} ]
 
 def getArguments():
     return [{"name": "gemini_api_key", "description": "gemini cloud API KEY", "default":None}]

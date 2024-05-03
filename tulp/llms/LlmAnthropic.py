@@ -5,7 +5,7 @@ log = tulplogger.Logger()
 
 
 def getModels():
-   return [ { "idRe":"claude-.*", "description":  "Any Anthropic claude model, requires ANTHROPIC_API_KEY"} ]
+   return [ { "idRe":"claude-.*", "description":  "Any Anthropic claude model (https://docs.anthropic.com/claude/docs/models-overview), requires ANTHROPIC_API_KEY"} ]
 
 def getArguments():
     return [{"name": "anthropic_api_key", "description": "Anthropic api key", "default":None}]

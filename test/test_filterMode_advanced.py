@@ -46,12 +46,15 @@ def test_filter_process_gdb_output():
     INPUT="""(gdb) p *polygon._points._M_ptr._M_impl._M_start@4
 $21 = {{x = 0.441429973, y = -0.176619753}, {x = 0.476210177, y = -0.104575738}, {x = 0.674865067, y = -0.0814191923}, {x = 0.640084863, y = -0.199776307}}
 """
-    cmd = f"echo '{INPUT}' | ./main.py 'convert this to a python list of 2 element tulpes'"
+    cmd = f"echo '{INPUT}' | ./main.py 'convert this to a python list of 2 element tulpes (x,y), just write the definition of the list'"
     result = execute(cmd)
     assert result.returncode == 0
     res = result.stdout.decode().strip()
-    POINTS="[(0.441429973, -0.176619753), (0.476210177, -0.104575738), (0.674865067, -0.0814191923), (0.640084863, -0.199776307)]"
-    assert POINTS in res
+    POINTS=eval("[(0.441429973, -0.176619753), (0.476210177, -0.104575738), (0.674865067, -0.0814191923), (0.640084863, -0.199776307)]")
+    res = res.split('=')[-1]
+    res = eval(res)
+    assert len(POINTS) == len(res)
+    assert all(p1 == p2 for p1, p2 in zip(POINTS, res)) 
 
 
 def test_filter_create_python_plot_from_points():

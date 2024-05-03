@@ -32,7 +32,7 @@ class TulipConfig:
             cls._instance.log_level = (args.v and "DEBUG") or (args.q and "ERROR")  or cls._instance.getValue("LOG_LEVEL", "INFO")
             tulplogger.setLogLevel(cls._instance.log_level)
             cls._instance.max_chars = int(args.max_chars or cls._instance.getValue("MAX_CHARS", "40000"))
-            cls._instance.model = args.model or cls._instance.getValue("MODEL", "gpt-4-0125-preview")
+            cls._instance.model = args.model or cls._instance.getValue("MODEL", "gpt-4-turbo")
             cls._instance.loadLlmsArguments(args)
 
         return cls._instance
