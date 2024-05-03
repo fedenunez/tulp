@@ -13,7 +13,7 @@ from . import TulpOutputFileWriter
 log = tulplogger.Logger()
 config = tulpconfig.TulipConfig()
 args = tulpargs.TulpArgs().get()
-llm: object  # will be defined in main
+llmclient: object  # will be defined in main
 
 # Helper functions
 
@@ -37,7 +37,7 @@ VALID_BLOCKS=["(#output)","(#thoughts)","(#inner_message)","(#error)","(#context
 ## parse_response)response_text): parse a gpt response, returning a dict with each response section 
 def parse_response(response_text):
     blocks_dict={}
-    lines = response_text.splitlines()
+    lines = response_text.strip().splitlines()
     # (#end) is not specified by us, but sometimes gpt-3.5 wrote it so we just parse it so we can keep it out
 
     # parse blocks:
@@ -70,7 +70,7 @@ output format, please try again and try to be more specific, you can also try
 with a different model (e.g., TULP_MODEL=gpt-4 tulp ...)""")
                 else:
                     log.error("""
-Unknown error while processing: this is usually related to gpt not honoring
+Unknown error while processing: this is usually related to llm not honoring
 our output format, please try again and try to be more specific in your
 request. You can also try to enable DEBUG log to inspect the raw answer (e.g.,
 TULP_LOG_LEVEL=DEBUG tulp ...)""") 
@@ -140,7 +140,7 @@ def processExecutionRequest(promptFactory, user_request, raw_input_chunks=None):
         for req in requestMessages:
             log.debug(f"REQ: {req}")
         log.debug(f"Sending the request to model...")
-        response = llm.generate(messages)
+        response = llmclient.generate(messages)
         log.debug(f"ANS: {response}")
         response_text = response["response_text"]
         finish_reason = response["finish_reason"]
@@ -197,7 +197,7 @@ def processRequest(promptFactory,user_request, raw_input_chunks=None):
             for req in requestMessages:
                 log.debug(f"REQ: {req}")
             log.debug(f"Sending the request to llm...")
-            response = llm.generate(requestMessages)
+            response = llmclient.generate(requestMessages)
             log.debug(f"ANS: {response}")
             response_text += response["response_text"]
             finish_reason = response["finish_reason"]
@@ -251,18 +251,15 @@ instructions.
 def run():
     log.debug(f"Running tulp v{version.VERSION} using model: {config.model}")
 
-    global llm
-    if config.model.startswith('gpt'):
-        from .llms import LlmOpenAI
-        llm = LlmOpenAI.LlmOpenAI(config)
-    elif config.model.startswith('gemini'):
-        from .llms import LlmGemini
-        llm = LlmGemini.LlmGemini(config)
+    global llmclient
+    from . import llms
+    llmclient = llms.getModelClient(config.model,config)
 
     # If input is available on stdin, read it
     input_text = ""
     if not sys.stdin.isatty():
-        input_text = sys.stdin.read().strip()
+        #input_text = sys.stdin.read().strip()
+        input_text = sys.stdin.buffer.read().decode('ascii', errors='ignore').strip()
 
     user_request=None
     if not args.request and not input_text:

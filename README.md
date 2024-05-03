@@ -1,8 +1,8 @@
-# TULP: TULP Understands Language Promptly
+# TULP: TULP Understands Language Promptly | v2.0 
 
-A command line tool, in the best essence of POSIX tooling, that will help you to **process**, **filter**, and **create** data in this new Artificial Intelligence world, backed by chatGPT.
+A command line tool, in the best essence of POSIX tooling, that will help you to **process**, **filter**, and **create** data in this new Artificial Intelligence world, now with enhanced capabilities to utilize various AI APIs including groq, ollama, anthropic, and gemini.
 
-TULP allows you to harness the power of chatGPT by piping standard input content directly to chatGPT, getting the answer back on the shell.
+TULP allows you to harness the power of multiple AI models by piping standard input content directly to these models, getting the answer back on the shell.
 
 [![tulp demo video](https://markdown-videos.deta.dev/youtube/mHAvlRXXp6I)](https://www.youtube.com/watch?v=mHAvlRXXp6I)
 
@@ -32,15 +32,15 @@ cat examples/titanics.csv | tulp -x how many persons survived
 
 In both cases, TULP will write to the standard output the answers and will write any other information to the standard error. You can safely pipe the output to your file or next piping command and will still get all the information and errors on stderr.
 
-It is **important** to note that if your input is larger than 5000 characters, the input will be split into multiple chunks and processed by chatGPT in multiple requests. In this case, the result quality will really depend on the task (e.g., will work fine for translations or grammatical corrections, it will work terribly for summarizing). Anyway, **tulp works great when the input is less than 5000 chars**.
+It is **important** to note that if your input is larger than 5000 characters, the input will be split into multiple chunks and processed by the selected AI model in multiple requests. In this case, the result quality will really depend on the task (e.g., will work fine for translations or grammatical corrections, it will work terribly for summarizing). Anyway, **tulp works great when the input is less than 5000 chars**.
 
-By default, tulp uses **gpt-3.5-turbo**, because it is cheaper and **faster**, but for complex tasks, it is always a **good idea to force the gpt-4 model**: tulp --model gpt-4 {a complex task}
+By default, tulp uses **gpt-4-0125-preview**, because it is cheaper and **faster**, but for complex tasks, it is always a **good idea to specify the model**: tulp --model {model_name} {a complex task}
 
 ### Options:
 ```
-usage: tulp [-h] [-x] [-w W] [--model {gpt-3.5-turbo,gpt-4}] [--max-chars MAX_CHARS] [-v] [-q] ...
+usage: tulp [-h] [-x] [-w W] [--model MODEL] [--max-chars MAX_CHARS] [-v] [-q] [--groq_api_key GROQ_API_KEY] [--ollama_host OLLAMA_HOST] [--anthropic_api_key ANTHROPIC_API_KEY] [--openai_api_key OPENAI_API_KEY] [--openai_baseurl OPENAI_BASEURL] [--gemini_api_key GEMINI_API_KEY] ...
 
-TULP Understands Language Promptly: A command line tool, in the best essence of POSIX tooling, that will help you to **process**, **filter**, and **create** data in this new Artificial Intelligence world, backed by chatGPT.
+TULP Understands Language Promptly: A command line tool, in the best essence of POSIX tooling, that will help you to **process**, **filter**, and **create** data in this new Artificial Intelligence world, now with support for multiple AI APIs including groq, ollama, anthropic, and gemini.
 
 positional arguments:
   request               User request, instructions written in natural language
@@ -49,27 +49,37 @@ optional arguments:
   -h, --help            show this help message and exit
   -x                    Allow tulp to create a program and execute it to fulfill the task (code interpret)
   -w W                  Write the output (or the created program for execution) to the file. If the file exists, a backup will be created before overwriting it.
-  --model {gpt-3.5-turbo,gpt-4}
-                        Select the LLM model to use, currently gpt-3.5-turbo or gpt-4
+  --model MODEL         Select the AI LLM model to use, now supporting groq.*, ollama.*, claude-.*, gpt-.*, and gemini.* models
   --max-chars MAX_CHARS
                         Number of chars per message chunk per request
   -v                    Be verbose!
   -q                    Be quiet! Only print the answer and errors.
+  --groq_api_key GROQ_API_KEY
+                        GROQ cloud API KEY
+  --ollama_host OLLAMA_HOST
+                        Define custom ollama host
+  --anthropic_api_key ANTHROPIC_API_KEY
+                        Anthropic api key
+  --openai_api_key OPENAI_API_KEY
+                        OpenAI cloud API KEY
+  --openai_baseurl OPENAI_BASEURL
+                        Use it to change the server, e.g.: use http://localhost:11434/v1/ to connect to your local ollama server
+  --gemini_api_key GEMINI_API_KEY
+                        gemini cloud API KEY
 
 ```
-
 
 ## Configuration 
 The configuration file is located at ~/.tulp.conf. 
 
 The following are the parameters that can be configured:
 - **LOG_LEVEL**: The log level of Tulp. Valid options are DEBUG, INFO, WARNING, ERROR, and CRITICAL. The default value is INFO.
-- **OPENAI_API_KEY**: The API key for OpenAI. The default value is an empty string.
-- **MAX_CHARS**: The maximum number of characters processed in one chunk. The default value is 5000.
-- **MODEL**: The OpenAI model to be used by Tulp. The default value is gpt-3.5-turbo, but gpt-4 is also available.
+- **API_KEYS**: The API keys for the supported AI models (OpenAI, GROQ, Ollama, Anthropic, Gemini). The default value is an empty string for each.
+- **MAX_CHARS**: The maximum number of characters processed in one chunk. The default value is 40000.
+- **MODEL**: The AI model to be used by Tulp. The default value is gpt-4-0125-preview, but other models are also available.
 
 All these settings could be overridden by an environment variable using the prefix TULP\_ or by the different command line arguments described above. 
-As environment variables, they will become: TULP_LOG_LEVEL, TULP_OPENAI_API_KEY, TULP_MAX_CHARS, or TULP_MODEL.
+As environment variables, they will become: TULP_LOG_LEVEL, TULP_API_KEYS, TULP_MAX_CHARS, or TULP_MODEL.
 Command line arguments will override environmental variables and the configuration file.
 
 
@@ -77,9 +87,9 @@ Here is an example configuration file with the default values:
 ```INI
 [DEFAULT]
 LOG_LEVEL = INFO
-OPENAI_API_KEY = <<<YOUR API KEY >>>>
-MAX_CHARS = 10000
-MODEL = gpt-3.5-turbo
+API_KEYS = <<<YOUR API KEYS FOR GROQ, OLLAMA, ANTHROPIC, OPENAI, GEMINI>>>
+MAX_CHARS = 40000
+MODEL = gpt-4-0125-preview
 ```
 ## Examples:
 The usage is endless, but anyway, here you have some ideas as inspiration:
@@ -197,13 +207,17 @@ TULP could stand for:
 I am a heavy user of Unix tooling (e.g: awk, jq, sed, grep, and so on), I have been using them since my early days and I used to think that I couldn't survive without them. But then, ChatGPT appeared, and I started to use more and more GPT for things that I used to use Unix tooling for. Somehow I feel the pain of cut & paste, and I was missing a way to do it faster and from within the terminal itself, so I came up with `tulp`.
 
 # Changelog
+## v2.0 | 2024-05-04
+- Added support for groq, ollama, anthropic, and gemini AI models.
+
 ## v1.0 | 2024-02-14
 - Changed to use gpt-4-0125-preview model by default
 - Updated to use openapi v1.0
 - Changes default max-chars to 40000
 
-## v07  | 2023-05-23 
+## v0.7  | 2023-05-23 
 - Adds Code Interpretation, -x option
 ## v0.6 | 2023-05-11
 - Adds all the settings as command line arguments
+
 

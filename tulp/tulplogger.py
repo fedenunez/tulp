@@ -1,8 +1,5 @@
 import os
 import sys
-from . import tulpconfig
-
-config = tulpconfig.TulipConfig()
 
 YELLOW = '\033[33m'
 ORANGE = '\033[38;5;208m'
@@ -37,24 +34,39 @@ def print_color(text, color):
     else:
         print(text,file=sys.stderr)
 
+loglevel = 'ERROR'
+
+def setLogLevel(level):
+    global loglevel
+    loglevel = level
+
+
 class Logger:
     def __init__(self):
-        self.log_level = config.log_level
+        self.loglevel = None
+
+    def __getLevel(self):
+        global loglevel
+        return self.loglevel or loglevel
+
+    # override global loglevel
+    def setLogLevel(self,level):
+        self.loglevel = level
 
     def error(self, message):
-        if self.log_level in ['ERROR', 'WARNING', 'INFO', 'DEBUG']:
+        if self.__getLevel() in ['ERROR', 'WARNING', 'INFO', 'DEBUG']:
             print_color(f'[ERROR] {message}',RED)
 
     def warning(self, message):
-        if self.log_level in ['WARNING', 'INFO', 'DEBUG']:
+        if self.__getLevel() in ['WARNING', 'INFO', 'DEBUG']:
             print_color(f'[WARNING] {message}',ORANGE)
 
     def info(self, message):
-        if self.log_level in ['INFO', 'DEBUG']:
+        if self.__getLevel() in ['INFO', 'DEBUG']:
             print_color(f'[INFO] {message}',GREY_18)
 
     def debug(self, message):
-        if self.log_level == 'DEBUG':
+        if self.__getLevel() == 'DEBUG':
             print_color(f'[DEBUG] {message}',GREY_11)
 
 if __name__ == '__main__':

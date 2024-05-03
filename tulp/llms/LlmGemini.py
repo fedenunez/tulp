@@ -1,10 +1,17 @@
 
 import google.generativeai as genai
+from google.generativeai.types import HarmCategory, HarmBlockThreshold
 from .. import tulplogger
 log = tulplogger.Logger()
 
+def getModels():
+   return [ { "idRe":"gemini.*", "description":  "Any Google gemini model, requires gemini_api_key definition"} ]
 
-class LlmGemini:
+def getArguments():
+    return [{"name": "gemini_api_key", "description": "gemini cloud API KEY", "default":None}]
+
+
+class Client:
     def __init__(self,config):
         self.config = config
         key = config.gemini_api_key
@@ -14,12 +21,21 @@ class LlmGemini:
         genai.configure(api_key=key)
         self.model = genai.GenerativeModel('gemini-pro')
 
+        # Safety config
+        self.safety_settings={
+        HarmCategory.HARM_CATEGORY_HATE_SPEECH: HarmBlockThreshold.BLOCK_NONE,
+        HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_NONE,
+    }
+
+
+
+
     def convertMessagesFromOpenAIToGemini(self, messages):
         gmessages = []
         pRole = None
         pParts = None
         for msg in messages:
-            cRole = "user"#(msg['role'] == "model" and "model" or "user")
+            cRole = (msg['role'] == "assistant" and "model" or "user")
             if pRole and cRole != pRole:
                gmessages.append( {'role': pRole , 'parts': pParts } )
                pRole = None
@@ -30,6 +46,14 @@ class LlmGemini:
                 pParts.append(msg['content'])
         # append the pending messages
         if pRole:
+           # 
+           if pRole == "model": # as gemini does not allow the last message to be from model, we change it to be user, a needed hack to survive
+               pRole = "user"
+               if gmessages[-1]['role'] == pRole:
+                   gmessages[-1]['parts'].extend(pParts)
+               else: 
+                   gmessages.append( {'role': pRole , 'parts': pParts } )
+           else:
                gmessages.append( {'role': pRole , 'parts': pParts } )
 
         return gmessages
@@ -47,10 +71,10 @@ class LlmGemini:
         for req in gmessages:
             log.debug(f"REQ: {req}")
         log.debug(f"Sending the request to llm...")
-        #response = self.model.generate_content(messages)
-        model = genai.GenerativeModel('gemini-pro')
+        response = self.model.generate_content(gmessages,
+                    safety_settings=self.safety_settings)
 
-        response = self.model.generate_content(gmessages)
+
         cand = response.candidates[0]
         log.debug(f"ANS: {cand.content}")
         log.debug(f"ANS: finish: {cand.finish_reason}")

@@ -1,18 +1,31 @@
 
+import sys
 from openai import OpenAI
 from .. import tulplogger
 log = tulplogger.Logger()
 
-class LlmOpenAI:
+
+# List all Models first
+
+def getModels():
+   return [ { "idRe":"gpt-.*", "description":  "Any OpenAI model, requires openai_api_key definition"} ]
+
+def getArguments():
+    return [{"name": "openai_api_key", "description": "OpenAI cloud API KEY", "default":None},
+            {"name": "openai_baseurl", "description": "Use it to change the server, e.g.: use http://localhost:11434/v1/ to connect to your local ollama server", "default": None} ]
+
+
+
+class Client:
     def __init__(self,config):
         self.config = config
         openai_key = config.openai_api_key
         if not openai_key:
-            log.error(f'OpenAI API key not found. Please set the TULP_OPENAI_API_KEY environment variable or add it to {tulpconfig.CONFIG_FILE}')
+            log.error(f'OpenAI API key not found. Please set the TULP_OPENAI_API_KEY environment variable or add it to {config.CONFIG_FILE()}')
             log.error(f"If you don't have one, please create one at: https://platform.openai.com/account/api-keys")
             sys.exit(1)
-        if config.baseURL:
-            self.client = OpenAI(base_url=config.baseURL, api_key=openai_key)
+        if config.openai_baseurl:
+            self.client = OpenAI(base_url=config.openai_baseurl, api_key=openai_key)
         else:
             self.client = OpenAI(api_key=openai_key)
 
