@@ -19,11 +19,11 @@ llmclient: object  # will be defined in main
 
 ## cleanup_output: clenaup output, removing artifacts
 def cleanup_output(output):
-    olines = output.splitlines()
+    olines = output.strip().splitlines()
     # gpt-3.5 usually adds unneeded markdown codeblock wrappers, try to remove them
     if len(olines) > 2:
         if olines[0].startswith("```") and olines[-1] == "```":
-            log.debug("markdown codeblock wrapping detected and stripped!")
+            log.info("markdown codeblock wrapping detected and stripped!")
             return "\n".join(olines[1:-1])
     return output
 
