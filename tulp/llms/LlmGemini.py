@@ -35,7 +35,7 @@ class Client:
         pParts = None
         for msg in messages:
             mRole = msg['role']
-            if mRole == "assistant":
+            if mRole == "assistant" or mRole == "model":
               cRole = "model"
             elif mRole == "system" and (pRole == "system" or pRole==None): 
               # system is only accepted as the first system_instruction, any other message will be converted to user
@@ -91,10 +91,11 @@ class Client:
 
 
         cand = response.candidates[0]
-        log.debug(f"ANS: {cand.content}")
+        log.debug(f"ANS: {cand}")
         log.debug(f"ANS: finish: {cand.finish_reason}")
         # https://ai.google.dev/api/rest/v1/GenerateContentResponse#FinishReason
         return { 
-                "response_text": cand.content.parts[0].text,
+                "role": cand.content.role,
+                "content": cand.content.parts[0].text,
                 "finish_reason": cand.finish_reason
                }

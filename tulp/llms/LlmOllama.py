@@ -63,6 +63,7 @@ class Client:
 # content_filter: Omitted content due to a flag from our content filters
 # null: API response still in progress or incomplete
         return { 
-                "response_text": response['message']['content'],
+                "role": response['message']['role'],
+                "content": response['message']['content'],
                 "finish_reason": response['done']
                }

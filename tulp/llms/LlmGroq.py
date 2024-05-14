@@ -75,6 +75,7 @@ class Client:
         cand = response.choices[0]
         log.debug(f"ANS: {cand}")
         return { 
-                "response_text": cand.message.content,
+                "role": cand.message.role,
+                "content": cand.message.content,
                 "finish_reason": cand.finish_reason
                }

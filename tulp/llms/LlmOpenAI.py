@@ -44,6 +44,7 @@ class Client:
         temperature=0)
         log.debug(f"ANS: {response}")
         return { 
-                "response_text": response.choices[0].message.content,
+                "role": response.choices[0].message.role,
+                "content": response.choices[0].message.content,
                 "finish_reason": response.choices[0].finish_reason
                }

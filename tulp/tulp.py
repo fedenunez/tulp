@@ -143,9 +143,9 @@ def processExecutionRequest(promptFactory, user_request, raw_input_chunks=None):
         for req in requestMessages:
             log.debug(f"REQ: {req}")
         log.debug(f"Sending the request to model...")
-        response = llmclient.generate(messages)
+        response = llmclient.generate(requestMessages)
         log.debug(f"ANS: {response}")
-        response_text = response["response_text"]
+        response_text = response["content"]
         finish_reason = response["finish_reason"]
         blocks_dict = parse_response(response_text)
         if block_exists(blocks_dict,"(#comment)"):
@@ -169,7 +169,8 @@ def processExecutionRequest(promptFactory, user_request, raw_input_chunks=None):
                 retries += 1
                 log.warning(f"Error while executing the code, I will try to fix it!")
                 requestMessages = promptFactory.getMessages(user_request, raw_input_chunks[0], len(raw_input_chunks))
-                requestMessages.append(response.choices[0].message)
+                rMsg = { "role": response["role"], "content": response["content"] }
+                requestMessages.append(rMsg)
                 requestMessages.append({"role": "user","content": f"The execution of the program failed with error:\n{berror}\n\nPlease try to write a new (#output) that fixes the error"})
             else:
                 break;
@@ -202,7 +203,7 @@ def processRequest(promptFactory,user_request, raw_input_chunks=None):
             log.debug(f"Sending the request to llm...")
             response = llmclient.generate(requestMessages)
             log.debug(f"ANS: {response}")
-            response_text += response["response_text"]
+            response_text += response["content"]
             finish_reason = response["finish_reason"]
 
 
