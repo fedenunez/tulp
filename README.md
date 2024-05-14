@@ -34,7 +34,7 @@ In both cases, TULP will write to the standard output the answers and will write
 
 It is **important** to note that if your input is larger than 5000 characters, the input will be split into multiple chunks and processed by the selected AI model in multiple requests. In this case, the result quality will really depend on the task (e.g., will work fine for translations or grammatical corrections, it will work terribly for summarizing). Anyway, **tulp works great when the input is less than 5000 chars**.
 
-By default, tulp uses **gpt-4-0125-preview**, because it is cheaper and **faster**, but for complex tasks, it is always a **good idea to specify the model**: tulp --model {model_name} {a complex task}
+By default, tulp uses **gpt-4o**, because it is cheaper and **faster**, but for complex tasks, it is always a **good idea to specify the model**: tulp --model {model_name} {a complex task}
 
 ### Options:
 ```
@@ -76,7 +76,7 @@ The following are the parameters that can be configured:
 - **LOG_LEVEL**: The log level of Tulp. Valid options are DEBUG, INFO, WARNING, ERROR, and CRITICAL. The default value is INFO.
 - **API_KEYS**: The API keys for the supported AI models (OpenAI, GROQ, Ollama, Anthropic, Gemini). The default value is an empty string for each.
 - **MAX_CHARS**: The maximum number of characters processed in one chunk. The default value is 40000.
-- **MODEL**: The AI model to be used by Tulp. The default value is gpt-4-0125-preview, but other models are also available.
+- **MODEL**: The AI model to be used by Tulp. The default value is gpt-4o but other models are also available.
 
 All these settings could be overridden by an environment variable using the prefix TULP\_ or by the different command line arguments described above. 
 As environment variables, they will become: TULP_LOG_LEVEL, TULP_API_KEYS, TULP_MAX_CHARS, or TULP_MODEL.
@@ -89,7 +89,7 @@ Here is an example configuration file with the default values:
 LOG_LEVEL = INFO
 ${MODEL}_API_KEYS = <<<YOUR API KEYS FOR GROQ, OLLAMA, ANTHROPIC, OPENAI, GEMINI>>>
 MAX_CHARS = 40000
-MODEL = gpt-4-0125-preview
+MODEL = gpt-4o
 ```
 
 
@@ -244,6 +244,10 @@ TULP could stand for:
 I am a heavy user of Unix tooling (e.g: awk, jq, sed, grep, and so on), I have been using them since my early days and I used to think that I couldn't survive without them. But then, ChatGPT appeared, and I started to use more and more GPT for things that I used to use Unix tooling for. Somehow I feel the pain of cut & paste, and I was missing a way to do it faster and from within the terminal itself, so I came up with `tulp`.
 
 # Changelog
+## v2.1 | 2024-05-14
+- Improves formating of messages for gemini
+- Changed to use gpt-4o model by default
+
 ## v2.0 | 2024-05-04
 - Added support for groq, ollama, anthropic, and gemini AI models.
 - Changed to use gpt-4-turbo model by default
