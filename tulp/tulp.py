@@ -2,6 +2,7 @@
 
 import sys
 import os
+import re
 import math
 from . import tulpargs
 from . import tulplogger
@@ -20,8 +21,10 @@ llmclient: object  # will be defined in main
 ## cleanup_output: clenaup output, removing artifacts
 def cleanup_output(output):
     olines = output.strip().splitlines()
+
+    blockRe = re.compile(r'^```',re.MULTILINE)
     # gpt-3.5 usually adds unneeded markdown codeblock wrappers, try to remove them
-    if len(olines) > 2:
+    if len(blockRe.findall(output)) == 2 and len(olines) > 2:
         if olines[0].startswith("```") and olines[-1] == "```":
             log.info("markdown codeblock wrapping detected and stripped!")
             return "\n".join(olines[1:-1])
