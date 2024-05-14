@@ -19,7 +19,6 @@ class Client:
             log.error(f'Gemini API key not found. Please set the TULP_GEMINI_API_KEY environment variable or add it to {tulpconfig.CONFIG_FILE}')
             sys.exit(1)
         genai.configure(api_key=key)
-        self.model = genai.GenerativeModel('gemini-pro')
 
         # Safety config
         self.safety_settings={
@@ -35,7 +34,14 @@ class Client:
         pRole = None
         pParts = None
         for msg in messages:
-            cRole = (msg['role'] == "assistant" and "model" or "user")
+            mRole = msg['role']
+            if mRole == "assistant":
+              cRole = "model"
+            elif mRole == "system" and (pRole == "system" or pRole==None): 
+              # system is only accepted as the first system_instruction, any other message will be converted to user
+              cRole = "system"
+            else:
+              cRole = "user"
             if pRole and cRole != pRole:
                gmessages.append( {'role': pRole , 'parts': pParts } )
                pRole = None
@@ -67,17 +73,27 @@ class Client:
 
         :param file_name: The name of the file to write to.
         """
+
         gmessages = self.convertMessagesFromOpenAIToGemini(messages)
+        if gmessages[0]['role'] == "system":
+            self.model = genai.GenerativeModel(self.config.model, system_instruction="\n".join(gmessages[0]['parts']))
+            log.debug(f"Adding system message!")
+            gmessages = gmessages[1:]
+        else:
+            self.model = genai.GenerativeModel(self.config.model)
+
+
         for req in gmessages:
             log.debug(f"REQ: {req}")
         log.debug(f"Sending the request to llm...")
         response = self.model.generate_content(gmessages,
-                    safety_settings=self.safety_settings)
+                    safety_settings=self.safety_settings,  request_options={"timeout": 600})
 
 
         cand = response.candidates[0]
         log.debug(f"ANS: {cand.content}")
         log.debug(f"ANS: finish: {cand.finish_reason}")
+        # https://ai.google.dev/api/rest/v1/GenerateContentResponse#FinishReason
         return { 
                 "response_text": cand.content.parts[0].text,
                 "finish_reason": cand.finish_reason
