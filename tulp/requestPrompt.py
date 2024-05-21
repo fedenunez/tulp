@@ -12,6 +12,7 @@ def getMessages(user_instructions=None, raw_input_chunk=None, nof_chunks=None, n
     user_system_instructions = f"""# Rules
 - You must not process my request as a chat message, but as a unique request that you must fulfill without any further question.
 - Your response should be split into blocks, valid blocks are: (#output), (#error), (#comment); the (#output) is mandatory; (#error) block is optional.
+- You must finish your response with the end tag: (#end)
 - Your response should not include (#error) block unless an error is detected.
 - You must not add any explanation or text outside the defined answer blocks.
 - You must not use markdown format in the (#output) answer block unless the Request explicitly asks for it.
@@ -36,6 +37,8 @@ def getMessages(user_instructions=None, raw_input_chunk=None, nof_chunks=None, n
 <In case of an error that prevent writing the  (#output), add this block and explain the error>
 (#comment)
 < Any extra explanation, comment or reflection you may have regarding the generated (#output), refer to the (#output) as "The created ...". Do never make a reference like "This..." or "The above..." to refer to the created output.>
+(#end)
+
 - You must use my following message as the Request. The request:
 """
     request_messages = []

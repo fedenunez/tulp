@@ -22,6 +22,7 @@ def getMessages(user_instructions, raw_input, nof_chunks=None, next_chunk=None, 
     request_messages.append({"role": "system", "content": system_instructions})
     user_system_instructions = f"""# Rules
 - Your response should be split into blocks, valid blocks are: (#inner_messages),(#output), (#error), (#comment); the (#output) is mandatory, (#error) block is optional.
+- You must finish your response with the end tag: (#end)
 - Your response should not include (#error) block unless an error is detected.
 - You **must** be honest about your limitations and raise an error if you can't follow the processing_instructions or you need more details.
 - You **must not** lie or generate an (#output) if you don't know how to follow the processing_instructions rigorously. 
@@ -47,6 +48,7 @@ def getMessages(user_instructions, raw_input, nof_chunks=None, next_chunk=None, 
 <In case of an error that prevent writing the  (#output), add this block and explain the error>
 {""}(#comment)
 <An overall description of what you wrote on (#output) and how you created. Any extra explanation, comment, or reflection you may have regarding the generated (#output), try to avoid using it in responses to partial message processing unless it is the final one. Refer to the (#output) as "The ouput ...". Do not ever make a reference like "This..." or "The above..." to refer to the created output >
+(#end)
 
 # Processing instructions:
 {user_instructions}

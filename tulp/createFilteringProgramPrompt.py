@@ -9,6 +9,7 @@ def getMessages(user_instructions, raw_input, nof_chunks=None, next_chunk=None, 
 
     user_system_instructions = f"""# Rules
 - Your response should be split into blocks, valid blocks are: (#inner_messages), (#thoughts), (#output), (#comment); the (#output) is mandatory.
+- You must finish your response with the end tag: (#end)
 - Your task is to write a python program
 - Writing the code in the (#output) block:
   - Start the program with an inline comment with the description of the code that you will write.
@@ -23,6 +24,7 @@ def getMessages(user_instructions, raw_input, nof_chunks=None, next_chunk=None, 
 <write the output program in python. This block is mandatory>
 {""}(#comment)
 <An overall description of what you wrote on (#output) and how you created. Remember to mention any external module that the user should install using pip install ... >
+(#end)
 
 # Request:
 You must create a python program that fulfil:

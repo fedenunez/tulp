@@ -7,6 +7,7 @@ def getMessages(user_instructions, raw_input, nof_chunks=None, next_chunk=None, 
     request_messages = []
     user_system_instructions = f"""# Rules
 - Your response should be split into blocks, valid blocks are: (#inner_messages), (#output), (#comment); the (#output) is mandatory.
+- You must finish your response with the end tag: (#end)
 - Your task is to write a python program (into the (#output) block), 
 - Writing the code in the (#output) block:
   - Start the program with an inline comment with the overall description of the software design
@@ -22,7 +23,7 @@ def getMessages(user_instructions, raw_input, nof_chunks=None, next_chunk=None, 
 
 # Code functionality:
 {user_instructions}
-
+(#end)
 """
     request_messages.append({"role": "user","content": user_system_instructions})
     return request_messages

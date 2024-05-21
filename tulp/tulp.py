@@ -33,7 +33,11 @@ def cleanup_output(output):
 
 ## block_exists(blocks_dict, key):  test if a KEY exist and is not empty
 def block_exists(blocks_dict, key):
+    return key in blocks_dict
+
+def block_isnotempty(blocks_dict, key):
     return key in blocks_dict and len(blocks_dict[key]["content"].strip()) > 0
+
 
 ## VALID_BLOCKS: define the valid answer blocks  blocks
 VALID_BLOCKS=["(#output)","(#thoughts)","(#inner_message)","(#error)","(#context)","(#comment)","(#end)"]
@@ -41,7 +45,6 @@ VALID_BLOCKS=["(#output)","(#thoughts)","(#inner_message)","(#error)","(#context
 def parse_response(response_text):
     blocks_dict={}
     lines = response_text.strip().splitlines()
-    # (#end) is not specified by us, but sometimes gpt-3.5 wrote it so we just parse it so we can keep it out
 
     # parse blocks:
     parsingBlock=None
@@ -148,9 +151,11 @@ def processExecutionRequest(promptFactory, user_request, raw_input_chunks=None):
         response_text = response["content"]
         finish_reason = response["finish_reason"]
         blocks_dict = parse_response(response_text)
-        if block_exists(blocks_dict,"(#comment)"):
+        if block_exists(blocks_dict,"(#end)"):
+            log.info("End found as expected!")
+        if block_isnotempty(blocks_dict,"(#comment)"):
             log.info(blocks_dict["(#comment)"]["content"])
-        if block_exists(blocks_dict,"(#output)"):
+        if block_isnotempty(blocks_dict,"(#output)"):
             oType = ""
             generatedCode = cleanup_output(blocks_dict["(#output)"]["content"])
             log.debug(f"The generated code:\n{generatedCode}")
@@ -209,17 +214,20 @@ def processRequest(promptFactory,user_request, raw_input_chunks=None):
 
         blocks_dict = parse_response(response_text)
 
-        if block_exists(blocks_dict,"(#error)"):
+        if block_isnotempty(blocks_dict,"(#error)"):
             log.error("Error: Couldn't process your request:")
             log.error(blocks_dict["(#error)"]["content"])
             sys.exit(1)
         else:
             valid_answer = False
 
-            if block_exists(blocks_dict,"(#inner_message)"):
+            if block_exists(blocks_dict,"(#end)"):
+                log.info("End found as expected!")
+
+            if block_isnotempty(blocks_dict,"(#inner_message)"):
                 log.debug("(#inner_message) found!")
 
-            if block_exists(blocks_dict,"(#output)"):
+            if block_isnotempty(blocks_dict,"(#output)"):
                 valid_answer = True
                 oType = ""
                 if blocks_dict["(#output)"]["type"]:
@@ -227,11 +235,11 @@ def processRequest(promptFactory,user_request, raw_input_chunks=None):
                 log.info(f"Writting generated output {oType}") 
                 print(cleanup_output(blocks_dict["(#output)"]["content"]))
 
-            if block_exists(blocks_dict,"(#comment)"):
+            if block_isnotempty(blocks_dict,"(#comment)"):
                 valid_answer = True
                 log.info(blocks_dict["(#comment)"]["content"])
 
-            if block_exists(blocks_dict,"(#context)"):
+            if block_isnotempty(blocks_dict,"(#context)"):
                 prev_context = blocks_dict["(#context)"]
             else:
                 prev_context = None
