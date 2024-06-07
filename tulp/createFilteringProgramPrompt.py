@@ -8,7 +8,8 @@ def getMessages(user_instructions, raw_input, nof_chunks=None, next_chunk=None, 
     request_messages = []
 
     user_system_instructions = f"""# Rules
-- Your response should be split into blocks, valid blocks are: (#inner_messages), (#thoughts), (#output), (#comment); the (#output) is mandatory.
+- Your response should be split into blocks, valid blocks are: (#output), (#comment); the (#output) is mandatory.
+- If you are continuing a response you started in the previous message, just continue from where you left off, without reopening the already opened block.
 - You must finish your response with the end tag: (#end)
 - Your task is to write a python program
 - Writing the code in the (#output) block:

@@ -211,6 +211,27 @@ def processRequest(promptFactory,user_request, raw_input_chunks=None):
             response_text += response["content"]
             finish_reason = response["finish_reason"]
 
+            # Strip (#output) if present, some models are adding the output
+            # block at the start of the continuation assuming that it is always
+            # opened in this case and removing it before appending the response
+            def strip_ouput_block(text):
+                text_stripped = text.lstrip()
+                if text_stripped.startswith("(#output)\n"):
+                    return text_stripped[len("(#output)\n"):]
+                elif text_stripped.startswith("(#output)"):
+                    return text_stripped[len("(#output)"):]
+                return text
+                 
+            # Check if continuation is needed
+            if args.cont and args.cont > 0 and not block_exists(parse_response(response_text), "(#end)"):
+                log.info(f"Continuation needed, remaining attempts: {args.cont}")
+                args.cont -= 1
+                requestMessages.append({"role": "assistant", "content": response["content"]})
+                requestMessages.append({"role": "user", "content": "continue"})
+                response = llmclient.generate(requestMessages)
+
+                response_text += strip_output_block(response["content"])
+                finish_reason = response["finish_reason"]
 
         blocks_dict = parse_response(response_text)
 

@@ -40,6 +40,7 @@ formatter_class=argparse.RawTextHelpFormatter
             parser.add_argument('--model', type=model_type, help='Select the openai LLM model to use (default: gpt-4-turbo)')
 
             parser.add_argument('--max-chars', type=int, help='Number of chars per message chunk per request (Default 40000)')
+            parser.add_argument('--cont', type=int, help='Autmatically ask the model to continue until it finishes the answering the request up to the given times')
 
             parser.add_argument('-v', action='store_true', help='Be verbose!')
 

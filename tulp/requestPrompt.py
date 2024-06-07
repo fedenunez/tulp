@@ -12,6 +12,7 @@ def getMessages(user_instructions=None, raw_input_chunk=None, nof_chunks=None, n
     user_system_instructions = f"""# Rules
 - You must not process my request as a chat message, but as a unique request that you must fulfill without any further question.
 - Your response should be split into blocks, valid blocks are: (#output), (#error), (#comment); the (#output) is mandatory; (#error) block is optional.
+- If you are continuing a response you started in the previous message, just continue from where you left off, without reopening the already opened block.
 - You must finish your response with the end tag: (#end)
 - Your response should not include (#error) block unless an error is detected.
 - You must not add any explanation or text outside the defined answer blocks.

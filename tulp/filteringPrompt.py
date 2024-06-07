@@ -22,6 +22,7 @@ def getMessages(user_instructions, raw_input, nof_chunks=None, next_chunk=None, 
     request_messages.append({"role": "system", "content": system_instructions})
     user_system_instructions = f"""# Rules
 - Your response should be split into blocks, valid blocks are: (#inner_messages),(#output), (#error), (#comment); the (#output) is mandatory, (#error) block is optional.
+- If you are continuing a response you started in the previous message, just continue from where you left off, without reopening the already opened block.
 - You must finish your response with the end tag: (#end)
 - Your response should not include (#error) block unless an error is detected.
 - You **must** be honest about your limitations and raise an error if you can't follow the processing_instructions or you need more details.
