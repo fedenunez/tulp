@@ -99,17 +99,38 @@ class Client:
 
         for req in gmessages:
             log.debug(f"REQ: {req}")
-        log.debug(f"Sending the request to llm...")
-        response = self.model.generate_content(gmessages,
-                    safety_settings=self.safety_settings,  request_options={"timeout": 600})
 
+        log.debug("Sending the request to llm...")
+
+        generation_config = {
+                "candidate_count": 1,
+                "temperature": 0
+                }
+
+        response = self.model.generate_content(
+                gmessages,
+                safety_settings=self.safety_settings,
+                request_options={"timeout": 900},
+                generation_config=generation_config
+                )
+
+        if response.candidates[0].finish_reason == "RECITATION":
+            log.info("RECITATION detected, retrying with more temperature...")
+            generation_config["temperature"] = 0.5
+            response = self.model.generate_content(
+                    gmessages,
+                    safety_settings=self.safety_settings,
+                    request_options={"timeout": 900},
+                    generation_config=generation_config
+                    )
 
         cand = response.candidates[0]
         log.debug(f"ANS: {cand}")
         log.debug(f"ANS: finish: {cand.finish_reason}")
+
         # https://ai.google.dev/api/rest/v1/GenerateContentResponse#FinishReason
         return { 
                 "role": cand.content.role,
                 "content": cand.content.parts[0].text,
                 "finish_reason": cand.finish_reason
-               }
+                }
