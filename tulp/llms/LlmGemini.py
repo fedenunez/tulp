@@ -114,7 +114,7 @@ class Client:
                 generation_config=generation_config
                 )
 
-        if response.candidates[0].finish_reason == "RECITATION":
+        if response.candidates[0].finish_reason.name == "RECITATION":
             log.info("RECITATION detected, retrying with more temperature...")
             generation_config["temperature"] = 0.5
             response = self.model.generate_content(

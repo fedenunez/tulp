@@ -214,7 +214,7 @@ def processRequest(promptFactory,user_request, raw_input_chunks=None):
             # Strip (#output) if present, some models are adding the output
             # block at the start of the continuation assuming that it is always
             # opened in this case and removing it before appending the response
-            def strip_ouput_block(text):
+            def strip_output_block(text):
                 text_stripped = text.lstrip()
                 if text_stripped.startswith("(#output)\n"):
                     return text_stripped[len("(#output)\n"):]
