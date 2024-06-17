@@ -104,7 +104,7 @@ class Client:
 
         generation_config = {
                 "candidate_count": 1,
-                "temperature": 0
+                "temperature": 1
                 }
 
         response = self.model.generate_content(
@@ -114,15 +114,19 @@ class Client:
                 generation_config=generation_config
                 )
 
-        if response.candidates[0].finish_reason.name == "RECITATION":
-            log.info("RECITATION detected, retrying with more temperature...")
-            generation_config["temperature"] = 0.5
+        while response.candidates[0].finish_reason.name == "RECITATION" and generation_config["temperature"] <=2 :
+            generation_config["temperature"] += .33
+            log.info(f"RECITATION detected, retrying with higher temperature: {generation_config['temperature']}..")
+
             response = self.model.generate_content(
                     gmessages,
                     safety_settings=self.safety_settings,
                     request_options={"timeout": 900},
                     generation_config=generation_config
                     )
+
+        if response.candidates[0].finish_reason.name == "RECITATION":
+            log.error(f"Okay, giving up. RECITATION is still popping up after retrying.")
 
         cand = response.candidates[0]
         log.debug(f"ANS: {cand}")
