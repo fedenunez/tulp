@@ -244,6 +244,11 @@ TULP could stand for:
 I am a heavy user of Unix tooling (e.g: awk, jq, sed, grep, and so on), I have been using them since my early days and I used to think that I couldn't survive without them. But then, ChatGPT appeared, and I started to use more and more GPT for things that I used to use Unix tooling for. Somehow I feel the pain of cut & paste, and I was missing a way to do it faster and from within the terminal itself, so I came up with `tulp`.
 
 # Changelog
+## v2.3 | 2024-05-19
+- Adds -cont option to allow tulp to automatically request the LLM to continue if an incomplete response is found.
+- Adds automatic handling of RECITATION for Gemini LLM.
+
+
 ## v2.2 | 2024-05-14
 - Fixes code execution (-x option)
 
