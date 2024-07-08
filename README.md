@@ -38,26 +38,41 @@ By default, tulp uses **gpt-4o**, because it is cheaper and **faster**, but for 
 
 ### Options:
 ```
-usage: tulp [-h] [-x] [-w W] [--model MODEL] [--max-chars MAX_CHARS] [-v] [-q] [--groq_api_key GROQ_API_KEY] [--ollama_host OLLAMA_HOST] [--anthropic_api_key ANTHROPIC_API_KEY] [--openai_api_key OPENAI_API_KEY] [--openai_baseurl OPENAI_BASEURL] [--gemini_api_key GEMINI_API_KEY] ...
+usage: tulp [-h] [-x] [-w W] [--model MODEL] [--max-chars MAX_CHARS] [--cont CONT] [-v] [-q] [--groq_api_key GROQ_API_KEY]
+            [--ollama_host OLLAMA_HOST] [--anthropic_api_key ANTHROPIC_API_KEY] [--openai_api_key OPENAI_API_KEY]
+            [--openai_baseurl OPENAI_BASEURL] [--gemini_api_key GEMINI_API_KEY]
+            ...
 
-TULP Understands Language Promptly: A command line tool, in the best essence of POSIX tooling, that will help you to **process**, **filter**, and **create** data in this new Artificial Intelligence world, now with support for multiple AI APIs including groq, ollama, anthropic, and gemini.
+TULP Understands Language Promptly:
+A command line tool, in the best essence of POSIX tooling, that will help you
+to **process**, **filter**, and **create** data in this new Artificial
+Intelligence world.
+
+Tulp support different backends and models, the backend will be automatically selected for each model, currently supported models should match:
+
+   - groq.* : Any groq model id using the prefix 'groq.', will use GROQCLOUD API and requires GROQ_API_KEY definition. Check available modules at https://console.groq.com/docs/models
+   - ollama.* : Any ollama model with the prefix 'ollama', the model should be running in the ollama_host.
+   - claude-.* : Any Anthropic claude model (https://docs.anthropic.com/claude/docs/models-overview), requires ANTHROPIC_API_KEY
+   - gpt-.* : Any OpenAI model (https://platform.openai.com/docs/models), requires openai_api_key definition
+   - gemini.* : Any Google gemini model (https://ai.google.dev/gemini-api/docs/models/gemini), requires gemini_api_key definition
 
 positional arguments:
   request               User request, instructions written in natural language
 
-optional arguments:
+options:
   -h, --help            show this help message and exit
   -x                    Allow tulp to create a program and execute it to fulfill the task (code interpret)
   -w W                  Write the output (or the created program for execution) to the file. If the file exists, a backup will be created before overwriting it.
-  --model MODEL         Select the AI LLM model to use, now supporting groq.*, ollama.*, claude-.*, gpt-.*, and gemini.* models
+  --model MODEL         Select the openai LLM model to use (default: gpt-4-turbo)
   --max-chars MAX_CHARS
-                        Number of chars per message chunk per request
+                        Number of chars per message chunk per request (Default 40000)
+  --cont CONT           Autmatically ask the model to continue until it finishes the answering the request up to the given times
   -v                    Be verbose!
   -q                    Be quiet! Only print the answer and errors.
   --groq_api_key GROQ_API_KEY
                         GROQ cloud API KEY
   --ollama_host OLLAMA_HOST
-                        Define custom ollama host
+                        Define custom ollama host, by default it will connect to http://127.0.0.1:11434
   --anthropic_api_key ANTHROPIC_API_KEY
                         Anthropic api key
   --openai_api_key OPENAI_API_KEY
