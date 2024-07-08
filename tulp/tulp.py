@@ -221,13 +221,14 @@ def processRequest(promptFactory,user_request, raw_input_chunks=None):
                 elif text_stripped.startswith("(#output)"):
                     return text_stripped[len("(#output)"):]
                 return text
-                 
+              
+            continue_counter = args.cont
             # Check if continuation is needed
-            if args.cont and args.cont > 0 and not block_exists(parse_response(response_text), "(#end)"):
-                log.info(f"Continuation needed, remaining attempts: {args.cont}")
-                args.cont -= 1
+            while continue_counter and continue_counter > 0 and not block_exists(parse_response(response_text), "(#end)"):
+                log.info(f"Continuation needed, continuation {args.cont - continue_counter} of a maximum of {args.cont}")
+                continue_counter -= 1
                 requestMessages.append({"role": "assistant", "content": response["content"]})
-                requestMessages.append({"role": "user", "content": "continue"})
+                requestMessages.append({"role": "user", "content": "continue, from your last charter, remember to finish using (#end) when you are done and keep the answering format."})
                 response = llmclient.generate(requestMessages)
 
                 response_text += strip_output_block(response["content"])
@@ -242,8 +243,13 @@ def processRequest(promptFactory,user_request, raw_input_chunks=None):
         else:
             valid_answer = False
 
-            if block_exists(blocks_dict,"(#end)"):
-                log.info("End found as expected!")
+            if not block_exists(blocks_dict,"(#end)"):
+                if args.cont and args.cont > 0 and continue_counter == 0:
+                    log.error("It looks like {args.cont} was not enough to fulfill your request, we consumed all continuation tries but the LLM didn't finish answering...")
+                elif not args.cont:
+                    log.error("If the LLM didn't finish answering, manually check if the answer is complete, try adding a --cont argument so tulp can ask the LLM to continue.")
+                else:
+                    log.warning("If the LLM didn't finish answering, manually check if the answer is complete, if not you may try adding a --cont argument so tulp can ask the LLM to continue.")
 
             if block_isnotempty(blocks_dict,"(#inner_message)"):
                 log.debug("(#inner_message) found!")
