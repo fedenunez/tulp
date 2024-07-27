@@ -278,12 +278,10 @@ def processRequest(promptFactory,user_request, raw_input_chunks=None):
 
         if finish_reason == "length":
             errorMsg = f"""Token limit exceeded:
-GPT could not finish your response, the answer depleted the chatGPT token
-limit. In order to overcome this error you may try to use a smaller MAX_CHARS
-(currently ={config.max_chars}), using a different model or improving your
-instructions.
+LLM could not finish your response, the answer depleted the token limit. In
+order to overcome this error you may try to use a smaller MAX_CHARS (currently
+={config.max_chars}), using a different model or improving your instructions.
 """
-
             log.error(errorMsg)
             sys.exit(2)
 
