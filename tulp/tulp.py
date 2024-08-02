@@ -228,7 +228,9 @@ def processRequest(promptFactory,user_request, raw_input_chunks=None):
                 log.info(f"Continuation needed, continuation {args.cont - continue_counter} of a maximum of {args.cont}")
                 continue_counter -= 1
                 requestMessages.append({"role": "assistant", "content": response["content"]})
-                requestMessages.append({"role": "user", "content": "continue, from your last charter, remember to finish using (#end) when you are done and keep the answering format."})
+                requestMessages.append({"role": "user", "content": "Continue from your last character. Remember to finish using (#end) when you are done and to maintain the answering format."})
+
+
                 response = llmclient.generate(requestMessages)
 
                 response_text += strip_output_block(response["content"])
@@ -309,6 +311,7 @@ def run():
         user_request = args.request
 
     raw_input_chunks = pre_process_raw_input(input_text)
+
 
     if input_text and user_request:
         # A filtering request:
