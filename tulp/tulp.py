@@ -9,12 +9,14 @@ from . import tulplogger
 from . import tulpconfig
 from . import version
 from . import TulpOutputFileWriter
+from . import promptSerializer
 
 
 log = tulplogger.Logger()
 config = tulpconfig.TulipConfig()
 args = tulpargs.TulpArgs().get()
 llmclient: object  # will be defined in main
+inspectFolder = None
 
 # Helper functions
 
@@ -221,6 +223,10 @@ def processRequest(promptFactory,user_request, raw_input_chunks=None):
                 elif text_stripped.startswith("(#output)"):
                     return text_stripped[len("(#output)"):]
                 return text
+
+            if (inspectFolder):
+                p = promptSerializer.RequestMessageSerializer(f"{inspectFolder}/{0}.json")
+                p.save(requestMessages, response)
               
             continue_counter = args.cont
             # Check if continuation is needed
@@ -230,11 +236,15 @@ def processRequest(promptFactory,user_request, raw_input_chunks=None):
                 requestMessages.append({"role": "assistant", "content": response["content"]})
                 requestMessages.append({"role": "user", "content": "Continue from your last character. Remember to finish using (#end) when you are done and to maintain the answering format."})
 
-
                 response = llmclient.generate(requestMessages)
+
+                if (inspectFolder):
+                    p = promptSerializer.RequestMessageSerializer(f"{inspectFolder}/{args.cont - continue_counter}.json")
+                    p.save(requestMessages, response)
 
                 response_text += strip_output_block(response["content"])
                 finish_reason = response["finish_reason"]
+
 
         blocks_dict = parse_response(response_text)
 
@@ -297,11 +307,12 @@ def run():
     # If input is available on stdin, read it
     input_text = ""
     if not sys.stdin.isatty():
-        #input_text = sys.stdin.read().strip()
         input_text = sys.stdin.buffer.read().decode('ascii', errors='ignore').strip()
 
     user_request=None
-    if not args.request and not input_text:
+    if args.continue_file:
+        log.info(f"continue from file: {args.continue_file}")
+    elif not args.request and not input_text:
         user_request = input("Enter your request: ").strip()
     elif args.request and not input_text:
         user_request = args.request
@@ -310,7 +321,28 @@ def run():
     elif args.request and input_text:
         user_request = args.request
 
-    raw_input_chunks = pre_process_raw_input(input_text)
+    if input_text:
+        raw_input_chunks = pre_process_raw_input(input_text)
+
+
+    if args.inspect_dir:
+        import os
+        import time
+        # Create the inspect_dir folder if it doesn't exist
+        os.makedirs(args.inspect_dir, exist_ok=True)
+    
+        # Compute the current Unix timestamp
+        timestamp = int(time.time())
+        
+        # Create the folder inspect_dir/timestamp
+        inspect_folder_path = os.path.join(args.inspect_dir, str(timestamp))
+        os.makedirs(inspect_folder_path, exist_ok=True)
+        
+        # Define a global variable inspectFolder with the created path
+        global inspectFolder
+        inspectFolder = inspect_folder_path
+        log.info(f"Will write all the interaction at {inspect_folder_path}")
+
 
 
     if input_text and user_request:
@@ -321,6 +353,13 @@ def run():
         else:
             from . import filteringPrompt
             sys.exit(processRequest(filteringPrompt, user_request, raw_input_chunks))
+    elif args.continue_file:
+        ps = promptSerializer.RequestMessageSerializer(args.continue_file)
+        if (args.x):
+            sys.exit(processExecutionRequest(ps.getPromptFactory(), True))
+        else:
+            from . import requestPrompt
+            sys.exit(processRequest(ps.getPromptFactory(), True))
     else:
         # A request
         if (args.x):
