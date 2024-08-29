@@ -156,7 +156,7 @@ echo "Meaning of Life"
 
 Command:
 ```bash
-cat <<EOF | tulp convert this to a python list of 2 element tuples |  tulp write a python function to scatter plot these points using matplotlib | python 
+cat <<EOF | tulp convert this to a python list of 2 element tuples |  tulp -x write a python function to scatter plot these points using matplotlib  
 (gdb) p *polygon._points._M_ptr._M_impl._M_start@4
 $21 = {{x = 0.441429973, y = -0.176619753}, {x = 0.476210177, y = -0.104575738}, {x = 0.674865067, y = -0.0814191923}, {x = 0.640084863, y = -0.199776307}}
 EOF
