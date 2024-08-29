@@ -62,7 +62,7 @@ class Client:
                 messages=pmsgs,
                 max_tokens=1024)
         log.debug(f"ANS: {response}")
-        #[DEBUG] ANS: Message(id='msg_01B9APcyvZAgWGabSWKJAfgF', content=[TextBlock(text='(#output)\nfind ~ -iname "*love*" -type f 2>/dev/null\n(#comment)\nThe created find command will search for files in your home directory and all its subdirectories with a case-insensitive name that contains "love". The "-type f" option restricts the results to regular files only, excluding directories and other special file types. Any error messages are discarded by redirecting the standard error to /dev/null.', type='text')], model='claude-3-opus-20240229', role='assistant', stop_reason='end_turn', stop_sequence=None, type='message', usage=Usage(input_tokens=776, output_tokens=103))
+        #[DEBUG] ANS: Message(id='msg_01B9APcyvZAgWGabSWKJAfgF', content=[TextBlock(text='(#stdout)\nfind ~ -iname "*love*" -type f 2>/dev/null\n(#stderr)\nThe created find command will search for files in your home directory and all its subdirectories with a case-insensitive name that contains "love". The "-type f" option restricts the results to regular files only, excluding directories and other special file types. Any error messages are discarded by redirecting the standard error to /dev/null.', type='text')], model='claude-3-opus-20240229', role='assistant', stop_reason='end_turn', stop_sequence=None, type='message', usage=Usage(input_tokens=776, output_tokens=103))
 
         return { 
                 "role": response.role,

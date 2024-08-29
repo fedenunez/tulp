@@ -70,7 +70,7 @@ class Client:
                 )
 
         # chat_completion.choices[0].message.content
-#        [DEBUG] ANS: Choice(finish_reason='stop', index=0, logprobs=None, message=ChoiceMessage(content='(#output)\n```bash\nfind / -name "lovely\\*file" 2>/dev/null\n```\n(#comment)\nThe above command will search for files and directories named "lovely*file" starting from the root directory ("/"). The "2>/dev/null" part is used to redirect error messages (such as permission errors) to null, effectively hiding them from the output.\n\n(#error)\n(#comment)', role='assistant', tool_calls=None))
+#        [DEBUG] ANS: Choice(finish_reason='stop', index=0, logprobs=None, message=ChoiceMessage(content='(#stdout)\n```bash\nfind / -name "lovely\\*file" 2>/dev/null\n```\n(#stderr)\nThe above command will search for files and directories named "lovely*file" starting from the root directory ("/"). The "2>/dev/null" part is used to redirect error messages (such as permission errors) to null, effectively hiding them from the output.\n\n(#error)\n(#stderr)', role='assistant', tool_calls=None))
 
         cand = response.choices[0]
         log.debug(f"ANS: {cand}")

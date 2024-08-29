@@ -53,7 +53,7 @@ class Client:
                 )
         log.debug(f"ANS: {response}")
 # [DEBUG] Sending the request to llm...
-# [DEBUG] ANS: {'model': 'phi3:instruct', 'created_at': '2024-05-03T14:57:07.682604174Z', 'message': {'role': 'assistant', 'content': "(#output)\nfind / -name 'mylovelyfile' # This command will search for a file named 'mylovelyfile' starting from root directory. Remember to replace '/' with your specific path if needed and ensure you have appropriate permissions, as this operation can potentially access many files across the system.\n(#comment)"}, 'done': True, 'total_duration': 252355913064, 'load_duration': 3772635741, 'prompt_eval_count': 818, 'prompt_eval_duration': 224214833000, 'eval_count': 71, 'eval_duration': 24218315000}
+# [DEBUG] ANS: {'model': 'phi3:instruct', 'created_at': '2024-05-03T14:57:07.682604174Z', 'message': {'role': 'assistant', 'content': "(#stdout)\nfind / -name 'mylovelyfile' # This command will search for a file named 'mylovelyfile' starting from root directory. Remember to replace '/' with your specific path if needed and ensure you have appropriate permissions, as this operation can potentially access many files across the system.\n(#stderr)"}, 'done': True, 'total_duration': 252355913064, 'load_duration': 3772635741, 'prompt_eval_count': 818, 'prompt_eval_duration': 224214833000, 'eval_count': 71, 'eval_duration': 24218315000}
 
 # TODO: Check finish reason, we need to comply with openAI api:#Every response will include a finish_reason. The possible values for finish_reason are:
 # 

@@ -44,7 +44,7 @@ formatter_class=argparse.RawTextHelpFormatter
 
             parser.add_argument('--inspect-dir', type=str, help='The directory where each iteration with the LLM will be saved. A new subdirectory with a timestamp will be created for each iteration. Inside these subdirectories, you can find all messages for review.')
 
-            parser.add_argument('--continue-file', type=str, help='Continue processing from the file, where file is a json file created by inspect-dir')
+            #WIP: parser.add_argument('--continue-file', type=str, help='Continue processing from the file, where file is a json file created by inspect-dir')
 
             parser.add_argument('-v', action='store_true', help='Be verbose!')
 
