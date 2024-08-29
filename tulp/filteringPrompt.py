@@ -49,7 +49,8 @@ def getMessages(user_instructions, stdin, nof_chunks=None, next_chunk=None, cont
 <In case of an error that prevent writing the  (#stdout), add this block and explain the error>
 {""}(#stderr)
 <An overall description of what you wrote on (#stdout) and how you created. Any extra explanation, comment, or reflection you may have regarding the generated (#stdout), try to avoid using it in responses to partial message processing unless it is the final one. Refer to the (#stdout) as "The ouput ...". Do not ever make a reference like "This..." or "The above..." to refer to the created output >
-(#end)
+{""}(#end)< Mandatory! A new line with the end flag to signal that you just finished!>
+
 
 # Processing instructions:
 {user_instructions}

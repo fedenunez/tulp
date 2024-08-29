@@ -24,6 +24,12 @@ inspectFolder = None
 def cleanup_output(output):
     olines = output.strip().splitlines()
 
+    # Remove all white lines at the start or end of olines
+    while olines and len(olines) > 1 and  not olines[0].strip():
+        olines.pop(0)
+    while olines and len(olines) > 1 and not olines[-1].strip():
+        olines.pop()
+
     blockRe = re.compile(r'^```',re.MULTILINE)
     # gpt-3.5 usually adds unneeded markdown codeblock wrappers, try to remove them
     if len(blockRe.findall(output)) == 2 and len(olines) > 2:
@@ -42,11 +48,24 @@ def block_isnotempty(blocks_dict, key):
 
 
 ## VALID_BLOCKS: define the valid answer blocks  blocks
-VALID_BLOCKS=["(#stdout)","(#thoughts)","(#inner_message)","(#error)","(#context)","(#stderr)","(#end)"]
+END_FLAG="(#end)"
+VALID_BLOCKS=["(#stdout)","(#thoughts)","(#inner_message)","(#error)","(#context)","(#stderr)",END_FLAG]
 ## parse_response)response_text): parse a gpt response, returning a dict with each response section 
 def parse_response(response_text):
     blocks_dict={}
     lines = response_text.strip().splitlines()
+
+    # Remove any empty lines at the end
+    while lines and len(lines) and not lines[-1].strip():
+        lines.pop()
+
+    # Find end tag
+    if len(lines) > 1:
+        lastLine = lines[-1]
+        if lastLine.endswith(END_FLAG):
+            lines[-1] = lastLine[:-len(END_FLAG)]
+            blocks_dict[END_FLAG] = {}
+
 
     # parse blocks:
     parsingBlock=None
@@ -153,7 +172,7 @@ def processExecutionRequest(promptFactory, user_request, stdin_chunks=None):
         response_text = response["content"]
         finish_reason = response["finish_reason"]
         blocks_dict = parse_response(response_text)
-        if block_exists(blocks_dict,"(#end)"):
+        if block_exists(blocks_dict,END_FLAG):
             log.info("End found as expected!")
         if block_isnotempty(blocks_dict,"(#stderr)"):
             log.info(blocks_dict["(#stderr)"]["content"])
@@ -230,7 +249,7 @@ def processRequest(promptFactory,user_request, stdin_chunks=None):
               
             continue_counter = args.cont
             # Check if continuation is needed
-            while continue_counter and continue_counter > 0 and not block_exists(parse_response(response_text), "(#end)"):
+            while continue_counter and continue_counter > 0 and not block_exists(parse_response(response_text), END_FLAG):
                 log.info(f"Continuation needed, continuation {args.cont - continue_counter} of a maximum of {args.cont}")
                 continue_counter -= 1
                 requestMessages.append({"role": "assistant", "content": response["content"]})
@@ -255,7 +274,7 @@ def processRequest(promptFactory,user_request, stdin_chunks=None):
         else:
             valid_answer = False
 
-            if not block_exists(blocks_dict,"(#end)"):
+            if not block_exists(blocks_dict,END_FLAG):
                 if args.cont and args.cont > 0 and continue_counter == 0:
                     log.error("It looks like {args.cont} was not enough to fulfill your request, we consumed all continuation tries but the LLM didn't finish answering...")
                 elif not args.cont:
