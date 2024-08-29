@@ -310,7 +310,7 @@ def run():
         input_text = sys.stdin.buffer.read().decode('ascii', errors='ignore').strip()
 
     user_request=None
-    if args.continue_file:
+    if 'continue_file' in args and args.continue_file:
         log.info(f"continue from file: {args.continue_file}")
     elif not args.request and not input_text:
         user_request = input("Enter your request: ").strip()
@@ -353,7 +353,7 @@ def run():
         else:
             from . import filteringPrompt
             sys.exit(processRequest(filteringPrompt, user_request, stdin_chunks))
-    elif args.continue_file:
+    elif 'continue_file' in args and args.continue_file:
         ps = promptSerializer.RequestMessageSerializer(args.continue_file)
         if (args.x):
             sys.exit(processExecutionRequest(ps.getPromptFactory(), True))
