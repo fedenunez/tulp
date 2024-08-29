@@ -259,6 +259,10 @@ TULP could stand for:
 I am a heavy user of Unix tooling (e.g: awk, jq, sed, grep, and so on), I have been using them since my early days and I used to think that I couldn't survive without them. But then, ChatGPT appeared, and I started to use more and more GPT for things that I used to use Unix tooling for. Somehow I feel the pain of cut & paste, and I was missing a way to do it faster and from within the terminal itself, so I came up with `tulp`.
 
 # Changelog
+
+## v2.6.1 | 2024-08-29
+- Change gemini dependencies because it was failing to install in some platforms.
+
 ## v2.6 | 2024-08-29
 - **Refactor**: Renamed internal blocks, now the LLM knows the input as stdin.
 - **New Features**: 
