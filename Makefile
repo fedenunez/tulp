@@ -29,7 +29,10 @@ test-models:
 	TULP_MODEL=groq.mixtral-8x7b-32768  pytest -v -s | tee $$RES_DIR/$${TULP_MODEL}.log  ;\
 	TULP_MODEL=ollama.phi3:instruct     pytest -v -s | tee $$RES_DIR/$${TULP_MODEL}.log  
 
-upload:
+testpackage: build
+	docker run -t -i -v $(shell pwd):/tulp -w /tulp python python -m pip install dist/tulp-*.tar.gz
+
+upload: testpackage
 	python3 -m pip install twine
 	python3 -m twine upload dist/tulp-*
 	rm -rf dist

@@ -4,7 +4,7 @@ from utils import execute
 def test_output_is_too_long():
     count=100
     BASESTR=" the input is already long \n"
-    cmd = f"echo '{BASESTR*count}' | ./main.py repeat the input 100 times"
+    cmd = f"echo '{BASESTR*count}' | ./main.py --max-chars 100 repeat the input 100 times"
     result = execute(cmd)
     res = result.stderr.decode().strip()
     assert result.returncode != 0

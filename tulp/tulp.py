@@ -9,18 +9,26 @@ from . import tulplogger
 from . import tulpconfig
 from . import version
 from . import TulpOutputFileWriter
+from . import promptSerializer
 
 
 log = tulplogger.Logger()
 config = tulpconfig.TulipConfig()
 args = tulpargs.TulpArgs().get()
 llmclient: object  # will be defined in main
+inspectFolder = None
 
 # Helper functions
 
 ## cleanup_output: clenaup output, removing artifacts
 def cleanup_output(output):
     olines = output.strip().splitlines()
+
+    # Remove all white lines at the start or end of olines
+    while olines and len(olines) > 1 and  not olines[0].strip():
+        olines.pop(0)
+    while olines and len(olines) > 1 and not olines[-1].strip():
+        olines.pop()
 
     blockRe = re.compile(r'^```',re.MULTILINE)
     # gpt-3.5 usually adds unneeded markdown codeblock wrappers, try to remove them
@@ -40,11 +48,24 @@ def block_isnotempty(blocks_dict, key):
 
 
 ## VALID_BLOCKS: define the valid answer blocks  blocks
-VALID_BLOCKS=["(#output)","(#thoughts)","(#inner_message)","(#error)","(#context)","(#comment)","(#end)"]
+END_FLAG="(#end)"
+VALID_BLOCKS=["(#stdout)","(#thoughts)","(#inner_message)","(#error)","(#context)","(#stderr)",END_FLAG]
 ## parse_response)response_text): parse a gpt response, returning a dict with each response section 
 def parse_response(response_text):
     blocks_dict={}
     lines = response_text.strip().splitlines()
+
+    # Remove any empty lines at the end
+    while lines and len(lines) and not lines[-1].strip():
+        lines.pop()
+
+    # Find end tag
+    if len(lines) > 1:
+        lastLine = lines[-1]
+        if lastLine.endswith(END_FLAG):
+            lines[-1] = lastLine[:-len(END_FLAG)]
+            blocks_dict[END_FLAG] = {}
+
 
     # parse blocks:
     parsingBlock=None
@@ -85,9 +106,9 @@ TULP_LOG_LEVEL=DEBUG tulp ...)""")
     return blocks_dict
 
 
-## pre_process_raw_input(input_text):  split all the input and create the raw_input_chunks with chunks of text ready to be send 
-def pre_process_raw_input(input_text):
-    raw_input_chunks=[]
+## pre_process_stdin(input_text):  split all the input and create the stdin_chunks with chunks of text ready to be send 
+def pre_process_stdin(input_text):
+    stdin_chunks=[]
     # Split input text into chunks to fit within max chars window
     max_chars = config.max_chars  # Maximum number of chars that we will send to GPT
     if len(input_text) > max_chars:
@@ -131,17 +152,17 @@ usually improves the quality of the result.
                     compressed_lines[compresed_index] += "\n"
 
     for line in compressed_lines:
-        raw_input_chunks.append(line)
+        stdin_chunks.append(line)
 
-    return raw_input_chunks
+    return stdin_chunks
 
 
-def processExecutionRequest(promptFactory, user_request, raw_input_chunks=None):
+def processExecutionRequest(promptFactory, user_request, stdin_chunks=None):
     retries = 0
     max_retries = 5
-    if (not raw_input_chunks):
-        raw_input_chunks = [""]
-    requestMessages = promptFactory.getMessages(user_request, raw_input_chunks[0], len(raw_input_chunks))
+    if (not stdin_chunks):
+        stdin_chunks = [""]
+    requestMessages = promptFactory.getMessages(user_request, stdin_chunks[0], len(stdin_chunks))
     while retries < max_retries:
         for req in requestMessages:
             log.debug(f"REQ: {req}")
@@ -151,16 +172,16 @@ def processExecutionRequest(promptFactory, user_request, raw_input_chunks=None):
         response_text = response["content"]
         finish_reason = response["finish_reason"]
         blocks_dict = parse_response(response_text)
-        if block_exists(blocks_dict,"(#end)"):
+        if block_exists(blocks_dict,END_FLAG):
             log.info("End found as expected!")
-        if block_isnotempty(blocks_dict,"(#comment)"):
-            log.info(blocks_dict["(#comment)"]["content"])
-        if block_isnotempty(blocks_dict,"(#output)"):
+        if block_isnotempty(blocks_dict,"(#stderr)"):
+            log.info(blocks_dict["(#stderr)"]["content"])
+        if block_isnotempty(blocks_dict,"(#stdout)"):
             oType = ""
-            generatedCode = cleanup_output(blocks_dict["(#output)"]["content"])
+            generatedCode = cleanup_output(blocks_dict["(#stdout)"]["content"])
             log.debug(f"The generated code:\n{generatedCode}")
             from . import executePython
-            input_text="".join(raw_input_chunks)
+            input_text="".join(stdin_chunks)
             if args.w:
                 ok, filename = TulpOutputFileWriter.TulpOutputFileWriter().write_to_file(args.w, generatedCode)
                 if ok: 
@@ -173,10 +194,10 @@ def processExecutionRequest(promptFactory, user_request, raw_input_chunks=None):
             if (ecode != 0 and berror.find("Traceback") != -1 ):
                 retries += 1
                 log.warning(f"Error while executing the code, I will try to fix it!")
-                requestMessages = promptFactory.getMessages(user_request, raw_input_chunks[0], len(raw_input_chunks))
+                requestMessages = promptFactory.getMessages(user_request, stdin_chunks[0], len(stdin_chunks))
                 rMsg = { "role": response["role"], "content": response["content"] }
                 requestMessages.append(rMsg)
-                requestMessages.append({"role": "user","content": f"The execution of the program failed with error:\n{berror}\n\nPlease try to write a new (#output) that fixes the error"})
+                requestMessages.append({"role": "user","content": f"The execution of the program failed with error:\n{berror}\n\nPlease try to write a new (#stdout) that fixes the error"})
             else:
                 break;
     if retries == max_retries:
@@ -190,19 +211,19 @@ def processExecutionRequest(promptFactory, user_request, raw_input_chunks=None):
     print(boutput)
     return ecode
 
-def processRequest(promptFactory,user_request, raw_input_chunks=None):
-    if not raw_input_chunks:
-        raw_input_chunks = [""] 
-    for i in range(0,len(raw_input_chunks)):
-        if (len(raw_input_chunks) > 1):
-            log.info(f"Processing {i+1} of {len(raw_input_chunks)}...")
+def processRequest(promptFactory,user_request, stdin_chunks=None):
+    if not stdin_chunks:
+        stdin_chunks = [""] 
+    for i in range(0,len(stdin_chunks)):
+        if (len(stdin_chunks) > 1):
+            log.info(f"Processing {i+1} of {len(stdin_chunks)}...")
         else:
             log.info(f"Processing...")
         finish_reason = ""
         response_text = ""
-        raw_input_chunk = raw_input_chunks[i]
+        stdin_chunk = stdin_chunks[i]
         if user_request:
-            requestMessages = promptFactory.getMessages(user_request, raw_input_chunk , len(raw_input_chunks), i+1)
+            requestMessages = promptFactory.getMessages(user_request, stdin_chunk , len(stdin_chunks), i+1)
             for req in requestMessages:
                 log.debug(f"REQ: {req}")
             log.debug(f"Sending the request to llm...")
@@ -211,28 +232,38 @@ def processRequest(promptFactory,user_request, raw_input_chunks=None):
             response_text += response["content"]
             finish_reason = response["finish_reason"]
 
-            # Strip (#output) if present, some models are adding the output
+            # Strip (#stdout) if present, some models are adding the output
             # block at the start of the continuation assuming that it is always
             # opened in this case and removing it before appending the response
             def strip_output_block(text):
                 text_stripped = text.lstrip()
-                if text_stripped.startswith("(#output)\n"):
-                    return text_stripped[len("(#output)\n"):]
-                elif text_stripped.startswith("(#output)"):
-                    return text_stripped[len("(#output)"):]
+                if text_stripped.startswith("(#stdout)\n"):
+                    return text_stripped[len("(#stdout)\n"):]
+                elif text_stripped.startswith("(#stdout)"):
+                    return text_stripped[len("(#stdout)"):]
                 return text
+
+            if (inspectFolder):
+                p = promptSerializer.RequestMessageSerializer(f"{inspectFolder}/{0}.json")
+                p.save(requestMessages, response)
               
             continue_counter = args.cont
             # Check if continuation is needed
-            while continue_counter and continue_counter > 0 and not block_exists(parse_response(response_text), "(#end)"):
+            while continue_counter and continue_counter > 0 and not block_exists(parse_response(response_text), END_FLAG):
                 log.info(f"Continuation needed, continuation {args.cont - continue_counter} of a maximum of {args.cont}")
                 continue_counter -= 1
                 requestMessages.append({"role": "assistant", "content": response["content"]})
-                requestMessages.append({"role": "user", "content": "continue, from your last charter, remember to finish using (#end) when you are done and keep the answering format."})
+                requestMessages.append({"role": "user", "content": "Continue from your last character. Remember to finish using (#end) when you are done and to maintain the answering format."})
+
                 response = llmclient.generate(requestMessages)
+
+                if (inspectFolder):
+                    p = promptSerializer.RequestMessageSerializer(f"{inspectFolder}/{args.cont - continue_counter}.json")
+                    p.save(requestMessages, response)
 
                 response_text += strip_output_block(response["content"])
                 finish_reason = response["finish_reason"]
+
 
         blocks_dict = parse_response(response_text)
 
@@ -243,7 +274,7 @@ def processRequest(promptFactory,user_request, raw_input_chunks=None):
         else:
             valid_answer = False
 
-            if not block_exists(blocks_dict,"(#end)"):
+            if not block_exists(blocks_dict,END_FLAG):
                 if args.cont and args.cont > 0 and continue_counter == 0:
                     log.error("It looks like {args.cont} was not enough to fulfill your request, we consumed all continuation tries but the LLM didn't finish answering...")
                 elif not args.cont:
@@ -254,17 +285,17 @@ def processRequest(promptFactory,user_request, raw_input_chunks=None):
             if block_isnotempty(blocks_dict,"(#inner_message)"):
                 log.debug("(#inner_message) found!")
 
-            if block_isnotempty(blocks_dict,"(#output)"):
+            if block_isnotempty(blocks_dict,"(#stdout)"):
                 valid_answer = True
                 oType = ""
-                if blocks_dict["(#output)"]["type"]:
-                    oType = f'(type: {blocks_dict["(#output)"]["type"]})'
+                if blocks_dict["(#stdout)"]["type"]:
+                    oType = f'(type: {blocks_dict["(#stdout)"]["type"]})'
                 log.info(f"Writting generated output {oType}") 
-                print(cleanup_output(blocks_dict["(#output)"]["content"]))
+                print(cleanup_output(blocks_dict["(#stdout)"]["content"]))
 
-            if block_isnotempty(blocks_dict,"(#comment)"):
+            if block_isnotempty(blocks_dict,"(#stderr)"):
                 valid_answer = True
-                log.info(blocks_dict["(#comment)"]["content"])
+                log.info(blocks_dict["(#stderr)"]["content"])
 
             if block_isnotempty(blocks_dict,"(#context)"):
                 prev_context = blocks_dict["(#context)"]
@@ -295,11 +326,12 @@ def run():
     # If input is available on stdin, read it
     input_text = ""
     if not sys.stdin.isatty():
-        #input_text = sys.stdin.read().strip()
         input_text = sys.stdin.buffer.read().decode('ascii', errors='ignore').strip()
 
     user_request=None
-    if not args.request and not input_text:
+    if 'continue_file' in args and args.continue_file:
+        log.info(f"continue from file: {args.continue_file}")
+    elif not args.request and not input_text:
         user_request = input("Enter your request: ").strip()
     elif args.request and not input_text:
         user_request = args.request
@@ -308,16 +340,45 @@ def run():
     elif args.request and input_text:
         user_request = args.request
 
-    raw_input_chunks = pre_process_raw_input(input_text)
+    if input_text:
+        stdin_chunks = pre_process_stdin(input_text)
+
+
+    if args.inspect_dir:
+        import os
+        import time
+        # Create the inspect_dir folder if it doesn't exist
+        os.makedirs(args.inspect_dir, exist_ok=True)
+    
+        # Compute the current Unix timestamp
+        timestamp = int(time.time())
+        
+        # Create the folder inspect_dir/timestamp
+        inspect_folder_path = os.path.join(args.inspect_dir, str(timestamp))
+        os.makedirs(inspect_folder_path, exist_ok=True)
+        
+        # Define a global variable inspectFolder with the created path
+        global inspectFolder
+        inspectFolder = inspect_folder_path
+        log.info(f"Will write all the interaction at {inspect_folder_path}")
+
+
 
     if input_text and user_request:
         # A filtering request:
         if (args.x):
             from . import createFilteringProgramPrompt
-            sys.exit(processExecutionRequest(createFilteringProgramPrompt, user_request, raw_input_chunks))
+            sys.exit(processExecutionRequest(createFilteringProgramPrompt, user_request, stdin_chunks))
         else:
             from . import filteringPrompt
-            sys.exit(processRequest(filteringPrompt, user_request, raw_input_chunks))
+            sys.exit(processRequest(filteringPrompt, user_request, stdin_chunks))
+    elif 'continue_file' in args and args.continue_file:
+        ps = promptSerializer.RequestMessageSerializer(args.continue_file)
+        if (args.x):
+            sys.exit(processExecutionRequest(ps.getPromptFactory(), True))
+        else:
+            from . import requestPrompt
+            sys.exit(processRequest(ps.getPromptFactory(), True))
     else:
         # A request
         if (args.x):
