@@ -48,8 +48,8 @@ def block_isnotempty(blocks_dict, key):
 
 
 ## VALID_BLOCKS: define the valid answer blocks  blocks
-END_FLAG="(#end)"
-VALID_BLOCKS=["(#stdout)","(#thoughts)","(#inner_message)","(#error)","(#context)","(#stderr)",END_FLAG]
+END_FLAG="<|cli_end|>"
+VALID_BLOCKS=["<|cli_stdout|>","<|cli_thoughts|>","<|cli_inner_message|>","<|cli_error|>","<|cli_context|>","<|cli_stderr|>",END_FLAG]
 ## parse_response)response_text): parse a gpt response, returning a dict with each response section 
 def parse_response(response_text):
     blocks_dict={}
@@ -174,11 +174,11 @@ def processExecutionRequest(promptFactory, user_request, stdin_chunks=None):
         blocks_dict = parse_response(response_text)
         if block_exists(blocks_dict,END_FLAG):
             log.info("End found as expected!")
-        if block_isnotempty(blocks_dict,"(#stderr)"):
-            log.info(blocks_dict["(#stderr)"]["content"])
-        if block_isnotempty(blocks_dict,"(#stdout)"):
+        if block_isnotempty(blocks_dict,"<|cli_stderr|>"):
+            log.info(blocks_dict["<|cli_stderr|>"]["content"])
+        if block_isnotempty(blocks_dict,"<|cli_stdout|>"):
             oType = ""
-            generatedCode = cleanup_output(blocks_dict["(#stdout)"]["content"])
+            generatedCode = cleanup_output(blocks_dict["<|cli_stdout|>"]["content"])
             log.debug(f"The generated code:\n{generatedCode}")
             from . import executePython
             input_text="".join(stdin_chunks)
@@ -197,7 +197,7 @@ def processExecutionRequest(promptFactory, user_request, stdin_chunks=None):
                 requestMessages = promptFactory.getMessages(user_request, stdin_chunks[0], len(stdin_chunks))
                 rMsg = { "role": response["role"], "content": response["content"] }
                 requestMessages.append(rMsg)
-                requestMessages.append({"role": "user","content": f"The execution of the program failed with error:\n{berror}\n\nPlease try to write a new (#stdout) that fixes the error"})
+                requestMessages.append({"role": "user","content": f"The execution of the program failed with error:\n{berror}\n\nPlease try to write a new <|cli_stdout|> that fixes the error"})
             else:
                 break;
     if retries == max_retries:
@@ -232,15 +232,15 @@ def processRequest(promptFactory,user_request, stdin_chunks=None):
             response_text += response["content"]
             finish_reason = response["finish_reason"]
 
-            # Strip (#stdout) if present, some models are adding the output
+            # Strip <|cli_stdout|> if present, some models are adding the output
             # block at the start of the continuation assuming that it is always
             # opened in this case and removing it before appending the response
             def strip_output_block(text):
                 text_stripped = text.lstrip()
-                if text_stripped.startswith("(#stdout)\n"):
-                    return text_stripped[len("(#stdout)\n"):]
-                elif text_stripped.startswith("(#stdout)"):
-                    return text_stripped[len("(#stdout)"):]
+                if text_stripped.startswith("<|cli_stdout|>\n"):
+                    return text_stripped[len("<|cli_stdout|>\n"):]
+                elif text_stripped.startswith("<|cli_stdout|>"):
+                    return text_stripped[len("<|cli_stdout|>"):]
                 return text
 
             if (inspectFolder):
@@ -253,7 +253,7 @@ def processRequest(promptFactory,user_request, stdin_chunks=None):
                 log.info(f"Continuation needed, continuation {args.cont - continue_counter} of a maximum of {args.cont}")
                 continue_counter -= 1
                 requestMessages.append({"role": "assistant", "content": response["content"]})
-                requestMessages.append({"role": "user", "content": "Continue from your last character. Remember to finish using (#end) when you are done and to maintain the answering format."})
+                requestMessages.append({"role": "user", "content": "Continue from your last character. Remember to finish using <|cli_end|> when you are done and to maintain the answering format."})
 
                 response = llmclient.generate(requestMessages)
 
@@ -267,9 +267,9 @@ def processRequest(promptFactory,user_request, stdin_chunks=None):
 
         blocks_dict = parse_response(response_text)
 
-        if block_isnotempty(blocks_dict,"(#error)"):
+        if block_isnotempty(blocks_dict,"<|cli_error|>"):
             log.error("Error: Couldn't process your request:")
-            log.error(blocks_dict["(#error)"]["content"])
+            log.error(blocks_dict["<|cli_error|>"]["content"])
             sys.exit(1)
         else:
             valid_answer = False
@@ -282,23 +282,23 @@ def processRequest(promptFactory,user_request, stdin_chunks=None):
                 else:
                     log.warning("If the LLM didn't finish answering, manually check if the answer is complete, if not you may try adding a --cont argument so tulp can ask the LLM to continue.")
 
-            if block_isnotempty(blocks_dict,"(#inner_message)"):
-                log.debug("(#inner_message) found!")
+            if block_isnotempty(blocks_dict,"<|cli_inner_message|>"):
+                log.debug("<|cli_inner_message|> found!")
 
-            if block_isnotempty(blocks_dict,"(#stdout)"):
+            if block_isnotempty(blocks_dict,"<|cli_stdout|>"):
                 valid_answer = True
                 oType = ""
-                if blocks_dict["(#stdout)"]["type"]:
-                    oType = f'(type: {blocks_dict["(#stdout)"]["type"]})'
+                if blocks_dict["<|cli_stdout|>"]["type"]:
+                    oType = f'(type: {blocks_dict["<|cli_stdout|>"]["type"]})'
                 log.info(f"Writting generated output {oType}") 
-                print(cleanup_output(blocks_dict["(#stdout)"]["content"]))
+                print(cleanup_output(blocks_dict["<|cli_stdout|>"]["content"]))
 
-            if block_isnotempty(blocks_dict,"(#stderr)"):
+            if block_isnotempty(blocks_dict,"<|cli_stderr|>"):
                 valid_answer = True
-                log.info(blocks_dict["(#stderr)"]["content"])
+                log.info(blocks_dict["<|cli_stderr|>"]["content"])
 
-            if block_isnotempty(blocks_dict,"(#context)"):
-                prev_context = blocks_dict["(#context)"]
+            if block_isnotempty(blocks_dict,"<|cli_context|>"):
+                prev_context = blocks_dict["<|cli_context|>"]
             else:
                 prev_context = None
 

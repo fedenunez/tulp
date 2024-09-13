@@ -8,11 +8,11 @@ def getMessages(user_instructions, stdin, nof_chunks=None, next_chunk=None, cont
     request_messages = []
 
     user_system_instructions = f"""# Rules
-- Your response should be split into blocks, valid blocks are: (#stdout), (#stderr); the (#stdout) is mandatory.
+- Your response should be split into blocks, valid blocks are: <|cli_stdout|>, <|cli_stderr|>; the <|cli_stdout|> is mandatory.
 - If you are continuing a response you started in the previous message, just continue from where you left off, without reopening the already opened block.
-- You must finish your response with the end tag: (#end)
+- You must finish your response with the end tag: <|cli_end|>
 - Your task is to write a python program
-- Writing the code in the (#stdout) block:
+- Writing the code in the <|cli_stdout|> block:
   - Start the program with an inline comment with the description of the code that you will write.
   - then write all the needed import, verify that all are included!
   - if and input file is needed: write the code that reads the stdin into a input buffer to be processed
@@ -21,11 +21,11 @@ def getMessages(user_instructions, stdin, nof_chunks=None, next_chunk=None, cont
   - verify at every step that you made the needed import before using any module
 
 # Response template:
-{""}(#stdout)
+{""}<|cli_stdout|>
 <write the output program in python. This block is mandatory>
-{""}(#stderr)
-<An overall description of what you wrote on (#stdout) and how you created. Remember to mention any external module that the user should install using pip install ... >
-(#end)
+{""}<|cli_stderr|>
+<An overall description of what you wrote on <|cli_stdout|> and how you created. Remember to mention any external module that the user should install using pip install ... >
+<|cli_end|>
 
 # Request:
 You must create a python program that fulfil:
