@@ -278,6 +278,11 @@ As a heavy user of Unix tools like awk, jq, sed, and grep, I relied on them heav
 
 ## Changelog
 
+### v2.6.3 | 2024-09-16
+- Adds support to openai chatgpt-\* models, like `chatgpt-4o-latest`, and the option to use "openai." prefix to select any future openai model.
+
+- Improved output end detection and cleaning of spurious code blocks.
+
 ### v2.6.2 | 2024-08-29
 - Improved output end detection and cleaning of spurious code blocks.
 

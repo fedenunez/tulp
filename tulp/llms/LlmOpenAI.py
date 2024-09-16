@@ -8,7 +8,8 @@ log = tulplogger.Logger()
 # List all Models first
 
 def getModels():
-   return [ { "idRe":"gpt-.*", "description":  "Any OpenAI model (https://platform.openai.com/docs/models), requires openai_api_key definition"} ]
+    return [ { "idRe":"(gpt-|chatgpt-|openai.).*", "description":  "Any OpenAI model (https://platform.openai.com/docs/models) requires the definition of an openai_api_key. It will support most model names directly (like gpt-4), or you can use openai.<MODEL_NAME> to use any unsupported model, like openai.o1." } ]
+
 
 def getArguments():
     return [{"name": "openai_api_key", "description": "OpenAI cloud API KEY", "default":None},
@@ -29,6 +30,9 @@ class Client:
         else:
             self.client = OpenAI(api_key=openai_key)
 
+    def getModel(self):
+        return self.config.model[7:] if self.config.model.startswith("openai.") else self.config.model
+
     def generate(self, messages):
         """
         Writes the given content to the given file name. If the file already exists, it will rename it to a new file on the same folder, appending to the file name a counter (like -1) and keeping the same extension. It will continually increase the counter until it finds a free object.
@@ -39,7 +43,7 @@ class Client:
         for req in messages:
             log.debug(f"REQ: {req}")
         log.debug(f"Sending the request to llm...")
-        response = self.client.chat.completions.create(model=self.config.model,
+        response = self.client.chat.completions.create(model=self.getModel(),
         messages=messages,
         temperature=0)
         log.debug(f"ANS: {response}")
