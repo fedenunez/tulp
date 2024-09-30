@@ -56,16 +56,15 @@ def parse_response(response_text):
     lines = response_text.strip().splitlines()
 
     # Remove any empty lines at the end
-    while lines and len(lines) and not lines[-1].strip():
+    while lines and len(lines) and ( not lines[-1].strip() or lines[-1].strip() == "```"):
         lines.pop()
 
     # Find end tag
     if len(lines) > 1:
-        lastLine = lines[-1]
+        lastLine = lines[-1].strip() 
         if lastLine.endswith(END_FLAG):
             lines[-1] = lastLine[:-len(END_FLAG)]
             blocks_dict[END_FLAG] = {}
-
 
     # parse blocks:
     parsingBlock=None
@@ -249,11 +248,17 @@ def processRequest(promptFactory,user_request, stdin_chunks=None):
               
             continue_counter = args.cont
             # Check if continuation is needed
-            while continue_counter and continue_counter > 0 and not block_exists(parse_response(response_text), END_FLAG):
+            parsed_response = parse_response(response_text)
+
+            while continue_counter and continue_counter > 0 and not ( 
+                    block_exists(parsed_response, END_FLAG) or block_exists(parsed_response, "(#stderr)") or block_exists(parsed_response, "(#error)")
+                    ):
                 log.info(f"Continuation needed, continuation {args.cont - continue_counter} of a maximum of {args.cont}")
+
                 continue_counter -= 1
                 requestMessages.append({"role": "assistant", "content": response["content"]})
-                requestMessages.append({"role": "user", "content": "Continue from your last character. Remember to finish using (#end) when you are done and to maintain the answering format."})
+                requestMessages.append({"role": "user", "content": "Continue from where you left off. Remember to end with the (#end) tag on a new line when you finish, and keep the response format."})
+
 
                 response = llmclient.generate(requestMessages)
 
@@ -262,10 +267,14 @@ def processRequest(promptFactory,user_request, stdin_chunks=None):
                     p.save(requestMessages, response)
 
                 response_text += strip_output_block(response["content"])
+                parsed_response = parse_response(response_text)
                 finish_reason = response["finish_reason"]
 
 
         blocks_dict = parse_response(response_text)
+
+        if continue_counter and continue_counter > 0 and not block_exists(parsed_response, END_FLAG):
+            log.warning("Waring: End tag not detected, we are finalizing because at least we know that (#stdout) is finished")
 
         if block_isnotempty(blocks_dict,"(#error)"):
             log.error("Error: Couldn't process your request:")
@@ -278,7 +287,7 @@ def processRequest(promptFactory,user_request, stdin_chunks=None):
                 if args.cont and args.cont > 0 and continue_counter == 0:
                     log.error("It looks like {args.cont} was not enough to fulfill your request, we consumed all continuation tries but the LLM didn't finish answering...")
                 elif not args.cont:
-                    log.error("If the LLM didn't finish answering, manually check if the answer is complete, try adding a --cont argument so tulp can ask the LLM to continue.")
+                    log.warning("If the LLM didn't finish answering, manually check if the answer is complete, try adding a --cont argument so tulp can ask the LLM to continue.")
                 else:
                     log.warning("If the LLM didn't finish answering, manually check if the answer is complete, if not you may try adding a --cont argument so tulp can ask the LLM to continue.")
 
