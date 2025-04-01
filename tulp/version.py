@@ -1,1 +1,3 @@
-VERSION = "2.6.4"
+# version.py
+# Keep this simple, just the version string.
+VERSION = "2.7.0" # Increment version after refactor

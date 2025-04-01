@@ -1,8 +1,8 @@
+# tulp/__init__.py
 
-from .tulp import *
+# Expose the main entry point and version
+from .cli import run
 from .version import VERSION
 
 __version__ = VERSION
-
-if __name__ == "__main__":
-    run()
+__all__ = ['run', 'VERSION']

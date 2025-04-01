@@ -1,332 +1,263 @@
-# TULP: TULP Understands Language Promptly 
+# TULP: TULP Understands Language Promptly (v2.7.0)
 
-TULP is a command-line tool inspired by POSIX utilities, designed to help you **process**, **filter**, and **create** data in the realm of Artificial Intelligence. It now includes enhanced capabilities to utilize various AI APIs, such as groq, ollama, anthropic, and gemini.
+TULP is a command-line tool inspired by POSIX utilities, designed to help you **process**, **filter**, and **create** data in the realm of Artificial Intelligence. It interfaces with various AI APIs (OpenAI, Groq, Ollama, Anthropic, Gemini) allowing you to leverage powerful language models directly from your shell.
 
-With TULP, you can leverage the power of multiple AI models by piping standard input content directly to these models and receiving the output in your shell.
+Pipe standard input content to TULP, provide instructions in natural language, and receive the processed output on standard output, just like familiar tools (`sed`, `awk`, `grep`, `jq`).
 
 [![Watch the TULP demo video](https://markdown-videos.deta.dev/youtube/mHAvlRXXp6I)](https://www.youtube.com/watch?v=mHAvlRXXp6I)
 
 ## Installation
 
-To install TULP, run:
+To install TULP using pip:
 ```bash
 pip install tulp
 ```
-To keep it up to date, use:
+To upgrade to the latest version:
 ```bash
 pip install --upgrade tulp
 ```
 
-**Note:** If you encounter issues with google-generativeai dependencies during installation, try upgrading pip:
-```bash
-pip install --upgrade pip
-```
+**Note:** Depending on the AI providers you intend to use, ensure their respective libraries are installed. TULP requires `openai`, `google-generativeai`, `anthropic`, `groq`, and `ollama`. If you encounter issues during installation related to dependencies (like `google-generativeai`), try upgrading pip first: `pip install --upgrade pip`.
 
 ## Usage
 
-TULP offers three main operation modes:
+TULP operates in several modes:
 
-1. **Request Mode:** Process a user request.
-   ```bash
-   tulp [Your request or question]
-   ```
+1.  **Direct Request Mode:** Ask a question or give a command without piping data.
+    ```bash
+    tulp "What is the capital of France?"
+    tulp "Write a python function to calculate factorial"
+    ```
+    If no request is given, TULP will prompt interactively.
 
-2. **Stdin Processing Mode:** Process or filter all stdin input based on user instructions, outputting the processed data to stdout.
-   ```bash
-   cat [MYFILE] | tulp [Processing instructions in natural language]
-   ```
+2.  **Stdin Processing Mode:** Pipe data into TULP and provide instructions on how to process it.
+    ```bash
+    cat data.csv | tulp "Extract the email addresses from the second column"
+    cat report.txt | tulp "Summarize this text in three bullet points"
+    cat code.py | tulp "Explain what this Python code does"
+    ```
 
-3. **Code Interpretation Mode:** Add `-x` to any of the previous operations, and TULP will attempt to **create, debug, and execute** a program to fulfill the request.
-   ```bash
-   cat examples/titanics.csv | tulp -x how many persons survived
-   ```
+3.  **Code Interpretation Mode (`-x`):** TULP attempts to **generate, debug, and execute** a Python program to fulfill the request based on the input data or instructions.
+    ```bash
+    tulp -x "Generate a list of 10 random names"
+    cat sales_data.csv | tulp -x "Calculate the total sales from the 'Amount' column"
+    ```
 
-In all cases, TULP outputs answers to standard output and any additional information to standard error. You can safely pipe the output to a file or another command, while still receiving all information and errors on stderr.
+**Output Handling:**
+*   The primary processed output (what the AI generates in response to the request) is written to **standard output** (`stdout`).
+*   Informational messages, logs, errors, and LLM explanations (from the `<|||stderr|||>` block) are written to **standard error** (`stderr`).
+*   This separation allows safe piping: `cat data | tulp "process..." | another_command`.
 
-**Important:** If your input exceeds 5000 characters, it will be split into multiple chunks and processed by the selected AI model in multiple requests. The result quality may vary depending on the task (e.g., translations or grammatical corrections work well, summarizing may not). TULP performs best with inputs under 5000 characters.
+**Large Inputs:** If standard input exceeds the `max_chars` limit (default 1,000,000, configurable), TULP automatically splits the input into chunks and processes them sequentially. Be aware that tasks requiring global context (like summarizing a whole book) may perform poorly when chunked. Line-based processing or tasks with local context generally work well. Adjust `--max-chars` or choose models with larger context windows if needed.
 
-By default, TULP uses **gpt-4o** for its cost-effectiveness and speed. For complex tasks, specifying the model is recommended:
+**Model Selection:** By default, TULP uses `gpt-4o`. You can specify a different model using the `--model` argument. TULP supports models from various providers (see Options below). For complex tasks or better results, explicitly selecting a powerful model is recommended:
 ```bash
-tulp --model {model_name} {a complex task}
+cat complex_data.json | tulp --model claude-3-opus-20240229 "Analyze this data structure and identify anomalies"
 ```
 
 ### Options
 
-```
-usage: tulp [-h] [-x] [-w W] [--model MODEL] [--max-chars MAX_CHARS] [--cont CONT] [-v] [-q] [--groq_api_key GROQ_API_KEY]
-            [--ollama_host OLLAMA_HOST] [--anthropic_api_key ANTHROPIC_API_KEY] [--openai_api_key OPENAI_API_KEY]
-            [--openai_baseurl OPENAI_BASEURL] [--gemini_api_key GEMINI_API_KEY]
+```text
+usage: tulp [-h] [-x] [-w FILE] [--model MODEL_NAME] [--max-chars NUM] [--cont N] [--inspect-dir DIR] [-v | -q] [--groq_api_key GROQ_API_KEY]
+            [--ollama_host OLLAMA_HOST] [--anthropic_api_key ANTHROPIC_API_KEY] [--openai_api_key OPENAI_API_KEY] [--openai_baseurl OPENAI_BASEURL]
+            [--gemini_api_key GEMINI_API_KEY]
             ...
 
-TULP Understands Language Promptly:
-A command-line tool inspired by POSIX utilities, designed to help you
-**process**, **filter**, and **create** data in the realm of Artificial
-Intelligence.
+TULP v2.7.0 - TULP Understands Language Promptly:
+A command-line tool, in the best essence of POSIX tooling, that helps you to **process**, **filter**, and **create** data using AI models.
 
-TULP supports different backends and models, automatically selecting the backend for each model. Supported models include:
+Tulp supports different backends and models, automatically selected based on the model name.
+Currently supported model patterns:
+   - (gpt-|chatgpt-|openai\.).* : Any OpenAI model (https://platform.openai.com/docs/models) or compatible API (e.g., local Ollama with base URL). Requires API key (openai_api_key). Use 'openai.<MODEL_ID>' for unlisted models.
+   - groq\..* : Any Groq model id using the prefix 'groq.', requires GROQ_API_KEY. Check available models at https://console.groq.com/docs/models
+   - ollama\..* : Any Ollama model prefixed with 'ollama.', requires Ollama service running (check --ollama_host).
+   - claude-.* : Any Anthropic Claude model (https://docs.anthropic.com/claude/docs/models-overview), requires ANTHROPIC_API_KEY
+   - gemini.* : Any Google Gemini model (https://ai.google.dev/gemini-api/docs/models/gemini), requires GEMINI_API_KEY
 
-   - groq.* : Any groq model ID prefixed with 'groq.', using the GROQCLOUD API and requiring a GROQ_API_KEY. Check available models at https://console.groq.com/docs/models
-   - ollama.* : Any ollama model prefixed with 'ollama', running on the ollama_host.
-   - claude-.* : Any Anthropic claude model (https://docs.anthropic.com/claude/docs/models-overview), requiring an ANTHROPIC_API_KEY
-   - gpt-.* : Any OpenAI model (https://platform.openai.com/docs/models), requiring an openai_api_key
-   - gemini.* : Any Google gemini model (https://ai.google.dev/gemini-api/docs/models/gemini), requiring a gemini_api_key
 
-Positional arguments:
-  request               User request, instructions written in natural language
+positional arguments:
+  request               User's request or processing instructions in natural language. Reads from stdin if processing piped data.
 
-Options:
-  -h, --help            Show this help message and exit
-  -x                    Allow TULP to create a program and execute it to fulfill the task (code interpret)
-  -w W                  Write the output (or the created program for execution) to a file. If the file exists, a backup will be created before overwriting it.
-  --model MODEL         Select the OpenAI LLM model to use (default: gpt-4-turbo)
-  --max-chars MAX_CHARS Number of characters per message chunk per request (Default 40000)
-  --cont CONT           Automatically ask the model to continue until it finishes answering the request up to the given times
-  -v                    Be verbose!
-  -q                    Be quiet! Only print the answer and errors.
+options:
+  -h, --help            show this help message and exit
+  -x, --execute         Allow Tulp to generate and execute Python code to fulfill the request (Code Interpreter mode).
+  -w FILE, --write FILE
+                        Write the main output (<|||stdout|||>) to FILE. Creates backups (.backup-N) if FILE exists.
+  --model MODEL_NAME    Select the AI model to use (e.g., gpt-4o, claude-3-opus-20240229, groq.llama3-70b-8192). (Config/Env: TULP_MODEL, default: gpt-4o)
+  --max-chars NUM       Max characters per LLM request chunk when processing large stdin. (Config/Env: TULP_MAX_CHARS, default: 1000000)
+  --cont N              Automatically ask the model to continue N times if the response seems incomplete (missing <|||end|||>). (Config/Env: TULP_CONT, default: 0)
+  --inspect-dir DIR     Save LLM request/response messages to timestamped subdirectories in DIR for debugging. (Config/Env: TULP_INSPECT_DIR)
+  -v, --verbose         Enable verbose logging (DEBUG level). Overrides -q, config, and env. (Config/Env: TULP_LOG_LEVEL=DEBUG)
+  -q, --quiet           Enable quiet logging (ERROR level). Overrides config and env. (Config/Env: TULP_LOG_LEVEL=ERROR)
+
+LLM Provider Arguments:
   --groq_api_key GROQ_API_KEY
-                        GROQ cloud API KEY
+                        Groq Cloud API Key (Config/Env: TULP_GROQ_API_KEY)
   --ollama_host OLLAMA_HOST
-                        Define custom ollama host, default is http://127.0.0.1:11434
+                        Ollama host URL (e.g., http://127.0.0.1:11434) (Config/Env: TULP_OLLAMA_HOST)
   --anthropic_api_key ANTHROPIC_API_KEY
-                        Anthropic API key
+                        Anthropic API key (Config/Env: TULP_ANTHROPIC_API_KEY)
   --openai_api_key OPENAI_API_KEY
-                        OpenAI cloud API KEY
+                        OpenAI (or compatible) API Key (Config/Env: TULP_OPENAI_API_KEY)
   --openai_baseurl OPENAI_BASEURL
-                        Change the server, e.g., use http://localhost:11434/v1/ to connect to your local ollama server
+                        Override OpenAI API base URL (e.g., for local models like Ollama: http://localhost:11434/v1) (Config/Env: TULP_OPENAI_BASEURL)
   --gemini_api_key GEMINI_API_KEY
-                        Gemini cloud API KEY
+                        Google AI (Gemini) API Key (Config/Env: TULP_GEMINI_API_KEY)
+
 ```
 
 ## Configuration
 
-The configuration file is located at `~/.tulp.conf`.
+TULP can be configured via a file (`~/.tulp.conf`), environment variables, or command-line arguments. The precedence order is: **Command-line Arguments > Environment Variables > Configuration File > Defaults**.
 
-Configurable parameters include:
-- **LOG_LEVEL**: The log level of TULP. Options are DEBUG, INFO, WARNING, ERROR, and CRITICAL. Default is INFO.
-- **API_KEYS**: API keys for supported AI models (OpenAI, GROQ, Ollama, Anthropic, Gemini). Default is an empty string for each.
-- **MAX_CHARS**: Maximum number of characters processed in one chunk. Default is 40000.
-- **MODEL**: The AI model used by TULP. Default is gpt-4o, but other models are available.
+**Configuration File (`~/.tulp.conf`):**
+Uses INI format. All settings should be under the `[DEFAULT]` section.
 
-These settings can be overridden by environment variables using the prefix TULP_ or by command-line arguments described above. As environment variables, they become: TULP_LOG_LEVEL, TULP_API_KEYS, TULP_MAX_CHARS, or TULP_MODEL. Command-line arguments override environmental variables and the configuration file.
-
-Example configuration file with default values:
-```INI
+```ini
 [DEFAULT]
+# Logging level: DEBUG, INFO, WARNING, ERROR, CRITICAL
 LOG_LEVEL = INFO
-${MODEL}_API_KEYS = <<<YOUR API KEYS FOR GROQ, OLLAMA, ANTHROPIC, OPENAI, GEMINI>>>
-MAX_CHARS = 40000
+
+# Default model if --model is not specified
 MODEL = gpt-4o
+
+# Max characters per chunk for large stdin
+MAX_CHARS = 1000000
+
+# Default number of continuation attempts if response seems incomplete
+CONT = 0
+
+# Default file to write output to (if -w is used without a value - usually not recommended)
+# WRITE_FILE = output.txt
+
+# Default mode for code execution (usually False)
+# EXECUTE_CODE = False
+
+# Default directory for saving LLM interactions
+# INSPECT_DIR = /path/to/tulp_inspect_logs
+
+# --- API Keys ---
+# Set API keys here or preferably via environment variables
+OPENAI_API_KEY = your_openai_key_here_or_leave_blank
+GROQ_API_KEY = your_groq_key_here_or_leave_blank
+ANTHROPIC_API_KEY = your_anthropic_key_here_or_leave_blank
+GEMINI_API_KEY = your_gemini_key_here_or_leave_blank
+
+# --- Provider Specific ---
+# OLLAMA_HOST = http://127.0.0.1:11434
+# OPENAI_BASEURL = https://api.openai.com/v1 # Or override for compatible APIs
+```
+
+**Environment Variables:**
+Prefix configuration keys with `TULP_`. For example:
+```bash
+export TULP_MODEL="claude-3-sonnet-20240229"
+export TULP_OPENAI_API_KEY="sk-..."
+export TULP_LOG_LEVEL="DEBUG"
+tulp "My request"
 ```
 
 ## Examples
 
-TULP's usage is versatile. Here are some examples for inspiration:
+TULP's usage is versatile. Here are some examples:
 
-### Random
+### Simple Questions & Generation
 
-#### The Meaning of Life for Different Models
-
-```
-+ tulp -q --model gpt-4-turbo tell me the meaning of life in just 3 words
-42, not known
-
-+ tulp -q --model gpt-3.5-turbo tell me the meaning of life in just 3 words
-Live, love, learn.
-
-+ tulp -q --model claude-3-opus-20240229 tell me the meaning of life in just 3 words
-Love conquers all.
-
-+ tulp -q --model gemini-1.5-pro-latest tell me the meaning of life in just 3 words
-The answer is 42.
-
-+ tulp -q --model groq.gemma-7b-it tell me the meaning of life in just 3 words
-The meaning of life is to find purpose and fulfillment in the present moment.
-
-+ tulp -q --model groq.llama3-70b-8192 tell me the meaning of life in just 3 words
-Find Your Purpose
-
-+ tulp -q --model groq.mixtral-8x7b-32768 tell me the meaning of life in just 3 words
-Impossible task.
-
-+ tulp -q --model ollama.phi3:instruct tell me the meaning of life in just 3 words
-echo "Meaning of Life"
-```
-
-#### Create a Plot from Raw Memory Output Printed by gdb
-
-Command:
 ```bash
-cat <<EOF | tulp convert this to a python list of 2 element tuples |  tulp -x write a python function to scatter plot these points using matplotlib  
-(gdb) p *polygon._points._M_ptr._M_impl._M_start@4
-$21 = {{x = 0.441429973, y = -0.176619753}, {x = 0.476210177, y = -0.104575738}, {x = 0.674865067, y = -0.0814191923}, {x = 0.640084863, y = -0.199776307}}
-EOF
+# Ask a question
+tulp "What are the main advantages of using Python?"
+
+# Generate code
+tulp "Write a bash script to find all *.log files older than 7 days in /var/log"
+
+# Generate code and save to file
+tulp "Create a simple Flask web server that returns 'Hello, World!'" -w app.py
 ```
 
-Result:
+### Processing Piped Data
 
-![matplotlib @rela](./examples/rela_plot.png)
-
-### Grammatical and Syntax Correction of Clipboard Content in Linux
-
-The corrected version will be in the clipboard:
 ```bash
-xsel -b | tulp fix my english | xsel -b
+# Basic text processing (like sed)
+echo "Hello world, this is a test." | tulp "Replace 'world' with 'Tulp'"
+
+# Data extraction (like grep/awk)
+cat access.log | tulp "Extract all IP addresses that made POST requests"
+
+# Format conversion (like jq)
+cat data.json | tulp "Convert this JSON array to a CSV file with headers 'ID' and 'Name'"
+
+# Summarization
+cat article.txt | tulp "Summarize this article in one paragraph"
+
+# Translation
+cat message.txt | tulp --model gemini-1.5-pro-latest "Translate this text to French"
 ```
 
-### Typical Unix Tooling Replacement
+### Code Interpretation (`-x`)
 
-#### Sed
 ```bash
-cat README.md | tulp replace all the occurrences of TULP for **TULP**
-```
+# Ask a question requiring calculation
+tulp -x "What is the square root of 15?"
 
-#### Awk
+# Analyze data from a file
+cat data.csv | tulp -x "Calculate the average value of the 'Score' column"
+
+# Perform file operations (Use with caution!)
+tulp -x "Create a directory named 'output' and move all *.txt files from the current directory into it"
+```
+**Warning:** The `-x` mode executes generated Python code. Review the generated code (especially if using `-w`) or understand the potential risks before running it on sensitive systems or data.
+
+### Using Different Models
+
 ```bash
-cat README.md | tulp print the second word of each line
+# Use Groq's Llama 3 70b via prefix
+cat input.txt | tulp --model groq.llama3-70b-8192 "Rewrite this text in a more formal style"
+
+# Use a local Ollama model (ensure Ollama service is running)
+cat code. R | tulp --model ollama.codellama "Explain this R code"
+
+# Use Anthropic's Claude 3 Sonnet
+tulp --model claude-3-sonnet-20240229 "Compare the philosophies of Kant and Hegel"
 ```
 
-#### Advanced Grep
+### Debugging with `--inspect-dir`
+
 ```bash
-cat tulp.py | tulp print the name of the functions and also the return line 
+tulp --inspect-dir ./tulp_logs "Explain the concept of recursion" -v
 ```
-
-### Grammatical and Syntax Corrections
-```bash
-cat README.md | tulp fix all the typos, syntax and grammatical errors > README.fix.md
-```
-
-Or even better:
-```bash
-cat README.md | TULP_MAX_CHARS=10000 TULP_MODEL=gpt-4 tulp fix all the typos, syntax and grammatical errors > README.fix.md
-```
-
-### Translations
-```bash
-cat README.md | tulp translate to Spanish > README.es.md
-```
-
-### Data Filtering from Formatted Input
-
-#### CSV
-```bash
-cat list.csv | tulp print only the second column
-Count
-3
-1
-2
-```
-
-#### JSON to CSV
-```bash
-cat persons.json | tulp 'list the names and ages of each person in a csv table, using ; as separator'
-```
-
-### Data Creation and Extraction from Unstructured Data
-
-A story of oranges and friends:
-```bash
-fede@liebre:~/repos/tulp$ tulp write a poem that names 3 persons \(given each a name\) and list how they shared 10 oranges | tee examples/oranges_poem.txt
-Roses are red,
-Violets are blue,
-Here's a poem,
-About sharing oranges too.
-
-There were three friends,
-Whose names were Ann, Ben, and Sue,
-They had 10 oranges,
-And didn't know what to do.
-
-Ann suggested they split them,
-Equally, three each,
-But Ben said that wasn't fair,
-As Sue was too weak.
-
-So they decided to give Sue,
-An extra orange or two,
-And split the rest evenly,
-So everyone had a fair view.
-
-And that's how Ann, Ben, and Sue,
-Shared their 10 oranges,
-With kindness and fairness,
-And no one had any grudges.
-
-fede@liebre:~/repos/tulp$ cat examples/oranges_poem.txt | python3 ./tulp.py write a list of persons and the number of oranges that they have as csv
-Ann,3
-Ben,3
-Sue,4
-```
+This will create a timestamped subdirectory inside `./tulp_logs` containing JSON files for each request/response interaction with the LLM, useful for debugging prompts and responses.
 
 ## Origin of the Name
 
-I used `tulp.py` to create "TULP". In some way, everything is recursive in "TULP", so it makes sense to use a recursive acronym.
+TULP stands for "TULP Understands Language Promptly". It's a recursive acronym, reflecting the tool's nature of using language models to process language.
 
-After several iterations with `tulp.py`, "TULP" and I decided that the best name would be "TULP", and this is how we decided what "TULP" stands for:
-```bash
-fede@liebre:~/repos/openai/tulp$ python3 ./tulp.py "TULP is a recursive acronym naming an opensource posix tool that processes stdin input according to natural language instructions, processing the input by instructing an artificial intelligence. Write some options of what TULP could stand for as recursive acronym"
-TULP could stand for:
-- TULP Understands Language Perfectly
-- TULP Uses Language to Process
-- TULP Understands Language Promptly
-- TULP Utilizes Language for Processing
-- TULP Unravels Language Precisely
-```
+## Changelog (Summary)
 
-## Why?
+### v2.7.0 | YYYY-MM-DD (Current Refactor)
+- **Major Refactor:** Improved modularity, readability, and adherence to clean code principles.
+    - Broke down `tulp.py` into `cli.py`, `core.py`, `input_handler.py`, `response_parser.py`, `output_handler.py`, `executor.py`.
+    - Moved prompt generation to `prompts/` package.
+    - Centralized constants in `constants.py`.
+    - Simplified configuration loading (`config.py`).
+    - Renamed helper files (`arguments.py`, `logger.py`).
+- **FML Tagging:** Changed internal block tagging from `(#tag)` to `<|||tag|||>`. Updated prompts and response parser accordingly. This is an internal change and should not affect user commands.
+- **Dependencies & Compatibility:** Updated dependency handling and versions. Requires Python >= 3.8.
+- **Minor Fixes:** Improved error messages, logging, and output handling.
 
-As a heavy user of Unix tools like awk, jq, sed, and grep, I relied on them heavily. However, with the advent of ChatGPT, I began using GPT for tasks I previously used Unix tools for. I felt the inconvenience of cut & paste and wanted a faster way to do it directly from the terminal, leading to the creation of `tulp`.
+### v2.6.x | 2024
+- Added `--inspect-dir` for debugging.
+- Added Gemini support.
+- Fixed various bugs and improved error handling.
 
-## Changelog
+### v2.0 - v2.5.x | 2024
+- Added support for Groq, Ollama, Anthropic models.
+- Changed default model over time (gpt-4-turbo, gpt-4o).
+- Added `--cont` option for automatic continuation.
+- Improved large input handling and warnings.
 
-### v2.6.3 | 2024-09-16
-- Adds support to openai chatgpt-\* models, like `chatgpt-4o-latest`, and the option to use "openai." prefix to select any future openai model.
+### v1.x | 2023-2024
+- Initial versions with OpenAI support.
+- Added code interpretation (`-x`).
+- Switched to newer OpenAI models and API versions.
 
-- Improved output end detection and cleaning of spurious code blocks.
-
-### v2.6.2 | 2024-08-29
-- Improved output end detection and cleaning of spurious code blocks.
-
-### v2.6.1 | 2024-08-29
-- Changed gemini dependencies due to installation issues on some platforms.
-
-### v2.6 | 2024-08-29
-- **Refactor:** Renamed internal blocks, now the LLM knows the input as stdin.
-- **New Features:** 
-  - Added `--inspect-dir` option to save each iteration with the LLM to a directory for review, aiding in debugging and understanding interactions.
-- **Bug Fixes:** Corrected a typo in the codebase.
-- **Enhancements:** 
-  - Integrated Gemini API dependencies to support interactions with Gemini LLMs.
-  - Increased default maximum characters for responses to handle longer outputs.
-  - Updated error messages for token limit exceedance to provide better context and guidance.
-
-### v2.5 | 2024-07-27
-- Fixed the --cont issue.
-- Added Gemini API dependencies.
-- Increased the default maximum characters.
-
-### v2.3 | 2024-05-19
-- Added -cont option to allow TULP to automatically request the LLM to continue if an incomplete response is found.
-- Added automatic handling of RECITATION for Gemini LLM.
-
-### v2.2 | 2024-05-14
-- Fixed code execution (-x option).
-
-### v2.1 | 2024-05-14
-- Improved formatting of messages for Gemini.
-- Changed to use gpt-4o model by default.
-
-### v2.0 | 2024-05-04
-- Added support for groq, ollama, anthropic, and gemini AI models.
-- Changed to use gpt-4-turbo model by default.
-
-### v1.0 | 2024-02-14
-- Changed to use gpt-4-0125-preview model by default.
-- Updated to use openapi v1.0.
-- Changed default max-chars to 40000.
-
-### v0.7 | 2023-05-23
-- Added Code Interpretation, -x option.
-
-### v0.6 | 2023-05-11
-- Added all the settings as command-line arguments.
-
+*(For detailed history, see git log)*
