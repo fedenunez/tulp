@@ -233,7 +233,7 @@ TULP stands for "TULP Understands Language Promptly". It's a recursive acronym, 
 
 ## Changelog (Summary)
 
-### v2.7.0 | YYYY-MM-DD (Current Refactor)
+### v2.7.0 | 2025-07-04
 - **Major Refactor:** Improved modularity, readability, and adherence to clean code principles.
     - Broke down `tulp.py` into `cli.py`, `core.py`, `input_handler.py`, `response_parser.py`, `output_handler.py`, `executor.py`.
     - Moved prompt generation to `prompts/` package.
