@@ -1,4 +1,4 @@
-# TULP: TULP Understands Language Promptly (v2.7.0)
+# TULP: TULP Understands Language Promptly (v2.8.0)
 
 TULP is a command-line tool inspired by POSIX utilities, designed to help you **process**, **filter**, and **create** data in the realm of Artificial Intelligence. It interfaces with various AI APIs (OpenAI, Groq, Ollama, Anthropic, Gemini) allowing you to leverage powerful language models directly from your shell.
 
@@ -17,7 +17,7 @@ To upgrade to the latest version:
 pip install --upgrade tulp
 ```
 
-**Note:** Depending on the AI providers you intend to use, ensure their respective libraries are installed. TULP requires `openai`, `google-generativeai`, `anthropic`, `groq`, and `ollama`. If you encounter issues during installation related to dependencies (like `google-generativeai`), try upgrading pip first: `pip install --upgrade pip`.
+**Note:** TULP installs the SDKs for the major providers it supports (`openai`, `google-generativeai`, `anthropic`, `groq`, `ollama`). We require `openai>=1.40.0` so you can use the newest GPT-o and Codex models. If you see dependency errors, upgrade pip first: `pip install --upgrade pip`.
 
 ## Usage
 
@@ -50,7 +50,7 @@ TULP operates in several modes:
 
 **Large Inputs:** If standard input exceeds the `max_chars` limit (default 1,000,000, configurable), TULP automatically splits the input into chunks and processes them sequentially. Be aware that tasks requiring global context (like summarizing a whole book) may perform poorly when chunked. Line-based processing or tasks with local context generally work well. Adjust `--max-chars` or choose models with larger context windows if needed.
 
-**Model Selection:** By default, TULP uses `gpt-4o`. You can specify a different model using the `--model` argument. TULP supports models from various providers (see Options below). For complex tasks or better results, explicitly selecting a powerful model is recommended:
+**Model Selection:** By default, TULP uses `gpt-5-mini`. You can switch providers with the `--model` flag; OpenAI GPT-o, Codex, Anthropic Claude, Groq LLaMA, Gemini, and Ollama models all work with a single command. Choose a higher-tier model when you need more context or accuracy:
 ```bash
 cat complex_data.json | tulp --model claude-3-opus-20240229 "Analyze this data structure and identify anomalies"
 ```
@@ -63,7 +63,7 @@ usage: tulp [-h] [-x] [-w FILE] [--model MODEL_NAME] [--max-chars NUM] [--cont N
             [--gemini_api_key GEMINI_API_KEY]
             ...
 
-TULP v2.7.0 - TULP Understands Language Promptly:
+TULP v2.8.0 - TULP Understands Language Promptly:
 A command-line tool, in the best essence of POSIX tooling, that helps you to **process**, **filter**, and **create** data using AI models.
 
 Tulp supports different backends and models, automatically selected based on the model name.
@@ -83,7 +83,7 @@ options:
   -x, --execute         Allow Tulp to generate and execute Python code to fulfill the request (Code Interpreter mode).
   -w FILE, --write FILE
                         Write the main output (<|||stdout|||>) to FILE. Creates backups (.backup-N) if FILE exists.
-  --model MODEL_NAME    Select the AI model to use (e.g., gpt-4o, claude-3-opus-20240229, groq.llama3-70b-8192). (Config/Env: TULP_MODEL, default: gpt-4o)
+  --model MODEL_NAME    Select the AI model to use (e.g., gpt-5-mini, claude-3-opus-20240229, groq.llama3-70b-8192). (Config/Env: TULP_MODEL, default: gpt-5-mini)
   --max-chars NUM       Max characters per LLM request chunk when processing large stdin. (Config/Env: TULP_MAX_CHARS, default: 1000000)
   --cont N              Automatically ask the model to continue N times if the response seems incomplete (missing <|||end|||>). (Config/Env: TULP_CONT, default: 0)
   --inspect-dir DIR     Save LLM request/response messages to timestamped subdirectories in DIR for debugging. (Config/Env: TULP_INSPECT_DIR)
@@ -119,7 +119,7 @@ Uses INI format. All settings should be under the `[DEFAULT]` section.
 LOG_LEVEL = INFO
 
 # Default model if --model is not specified
-MODEL = gpt-4o
+MODEL = gpt-5-mini
 
 # Max characters per chunk for large stdin
 MAX_CHARS = 1000000
@@ -233,16 +233,14 @@ TULP stands for "TULP Understands Language Promptly". It's a recursive acronym, 
 
 ## Changelog (Summary)
 
+### v2.8.0 | Unreleased
+- **OpenAI models:** Added support for GPT-o and Codex responses, so the newest assistants work with a single `tulp` command.
+- **Default model:** Switched to `gpt-5-mini` for stronger reasoning out of the box.
+
 ### v2.7.0 | 2025-07-04
-- **Major Refactor:** Improved modularity, readability, and adherence to clean code principles.
-    - Broke down `tulp.py` into `cli.py`, `core.py`, `input_handler.py`, `response_parser.py`, `output_handler.py`, `executor.py`.
-    - Moved prompt generation to `prompts/` package.
-    - Centralized constants in `constants.py`.
-    - Simplified configuration loading (`config.py`).
-    - Renamed helper files (`arguments.py`, `logger.py`).
-- **FML Tagging:** Changed internal block tagging from `(#tag)` to `<|||tag|||>`. Updated prompts and response parser accordingly. This is an internal change and should not affect user commands.
-- **Dependencies & Compatibility:** Updated dependency handling and versions. Requires Python >= 3.8.
-- **Minor Fixes:** Improved error messages, logging, and output handling.
+- **CLI refresh:** Faster startup and clearer logging after a large internal cleanup.
+- **Output format:** Responses now use `<|||tag|||>` markers for easier piping and parsing.
+- **Compatibility:** Updated dependencies and kept support for Python 3.8+.
 
 ### v2.6.x | 2024
 - Added `--inspect-dir` for debugging.
@@ -251,7 +249,7 @@ TULP stands for "TULP Understands Language Promptly". It's a recursive acronym, 
 
 ### v2.0 - v2.5.x | 2024
 - Added support for Groq, Ollama, Anthropic models.
-- Changed default model over time (gpt-4-turbo, gpt-4o).
+- Changed default model over time (gpt-4-turbo, gpt-4o, gpt-5-mini).
 - Added `--cont` option for automatic continuation.
 - Improved large input handling and warnings.
 

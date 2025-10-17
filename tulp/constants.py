@@ -54,7 +54,7 @@ VALID_RESPONSE_BLOCK_NAMES = [
 DEFAULT_CONFIG_FILE_PATH = "~/.tulp.conf"
 DEFAULT_LOG_LEVEL = "INFO"
 DEFAULT_MAX_CHARS = 1000000
-DEFAULT_MODEL = "gpt-4o" # Default model setting
+DEFAULT_MODEL = "gpt-5-mini" # Default model setting
 DEFAULT_CONTINUATION_RETRIES = 0 # Default for --cont
 
 # --- Environment Variable Prefix ---
@@ -68,4 +68,3 @@ LOG_LEVELS = ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
 
 # --- Other ---
 DEFAULT_INSPECT_SUBDIR_FORMAT = "%Y%m%d_%H%M%S"
-
