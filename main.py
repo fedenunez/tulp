@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 # main.py - Entry point script for running tulp
 
 import sys
@@ -18,4 +18,3 @@ from tulp import cli
 
 if __name__ == "__main__":
     cli.run()
-
