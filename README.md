@@ -220,6 +220,19 @@ cat code. R | tulp --model ollama.codellama "Explain this R code"
 tulp --model claude-3-sonnet-20240229 "Compare the philosophies of Kant and Hegel"
 ```
 
+### Working with FMLPack
+
+[`fmlpack`](https://github.com/fedenunez/fmlpack) packages entire folders into FML (Filesystem Markup Language), making it easy to share projects with an LLM and unpack the response.
+
+```bash
+# Send the current project snapshot to TULP for review
+fmlpack -c . | tulp "Review this code and point out bugs:"
+
+# Generate new files with TULP, then materialize them locally
+tulp "Create a README and src/app.py for a TODO manager, respond in FML format." > out.fml
+fmlpack -x -f out.fml -C ./todo-app
+```
+
 ### Debugging with `--inspect-dir`
 
 ```bash
