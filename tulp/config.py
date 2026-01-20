@@ -86,6 +86,7 @@ class TulpConfig:
         # Load other general settings (CLI > ENV > Config > Default)
         max_chars_arg = getattr(args, 'max_chars', None)
         model_arg = getattr(args, 'model', None)
+        thinking_level_arg = getattr(args, 'thinking_level', None)
         cont_arg = getattr(args, 'cont', None)
         write_arg = getattr(args, 'write', None)
         execute_arg = getattr(args, 'execute', None)
@@ -93,6 +94,7 @@ class TulpConfig:
 
         self.max_chars = int(max_chars_arg if max_chars_arg is not None else self._get_value("MAX_CHARS", str(constants.DEFAULT_MAX_CHARS)))
         self.model = model_arg if model_arg is not None else self._get_value("MODEL", constants.DEFAULT_MODEL)
+        self.thinking_level = thinking_level_arg if thinking_level_arg is not None else self._get_value("THINKING_LEVEL", constants.DEFAULT_THINKING_LEVEL)
         self.continuation_retries = int(cont_arg if cont_arg is not None else self._get_value("CONT", str(constants.DEFAULT_CONTINUATION_RETRIES)))
         self.write_file = write_arg if write_arg is not None else self._get_value("WRITE_FILE", None)
         self.execute_code = bool(execute_arg) if execute_arg is not None else self._get_value("EXECUTE_CODE", "False").lower() in ('true', '1', 't', 'y', 'yes')
@@ -101,6 +103,7 @@ class TulpConfig:
         log.debug(f"Using config file: {self.config_file_path}")
         log.debug(f"Max chars: {self.max_chars}")
         log.debug(f"Model: {self.model}")
+        log.debug(f"Thinking Level: {self.thinking_level}")
         log.debug(f"Continuation retries: {self.continuation_retries}")
         log.debug(f"Write file: {self.write_file}")
         log.debug(f"Execute code: {self.execute_code}")

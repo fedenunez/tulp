@@ -56,6 +56,7 @@ DEFAULT_LOG_LEVEL = "INFO"
 DEFAULT_MAX_CHARS = 1000000
 DEFAULT_MODEL = "gpt-5-mini" # Default model setting
 DEFAULT_CONTINUATION_RETRIES = 0 # Default for --cont
+DEFAULT_THINKING_LEVEL = "low" # Default reasoning effort for supported models
 
 # --- Environment Variable Prefix ---
 ENV_VAR_PREFIX = "TULP_"

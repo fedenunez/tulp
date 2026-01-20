@@ -29,7 +29,7 @@ def getModels() -> List[Dict[str, str]]:
     # Allow gpt-*, chatgpt-*, and explicit openai.* prefixes. Use raw strings.
     return [
         {
-            "idRe": r"(gpt-|chatgpt-|codex-|openai\.).*",
+            "idRe": r"(gpt-|chatgpt-|codex-|o[13]-|openai\.).*",
             "description": "Any OpenAI model (https://platform.openai.com/docs/models) or compatible API (e.g., local Ollama with base URL). Requires API key (openai_api_key). Use 'openai.<MODEL_ID>' for unlisted models.",
         }
     ]
@@ -94,7 +94,9 @@ class Client:
         # For gpt-* or chatgpt-*, use the name directly
         return model_config_name
 
-    # No message conversion needed as Groq and Ollama (via openai_baseurl) use OpenAI format.
+    def _is_reasoning_model(self, model_name: str) -> bool:
+        """Checks if the model is likely an OpenAI reasoning model (e.g., o1, o3)."""
+        return model_name.startswith(("o1", "o3"))
 
     def generate(self, messages: List[Dict[str, str]]) -> Dict[str, Any]:
         """Generates a response from the OpenAI/compatible model."""
@@ -128,7 +130,9 @@ class Client:
                 return normalized_model.startswith("codex")
 
         # Prefer responses API for official OpenAI endpoints and new model families (codex, o-series, gpt-4.1+, gpt-5+)
-        response_only_prefixes = ("o", "omni", "gpt-4.1", "gpt-4.2", "gpt-4o", "gpt-5")
+        # Note: As of early 2025/2026, reasoning models (o1/o3) use chat completions with specific params
+        # or a beta responses API. Sticking to Chat Completions for o1/o3 for now to ensure param support.
+        response_only_prefixes = ("gpt-4.1", "gpt-4.2", "gpt-5")
         if normalized_model.startswith(response_only_prefixes):
             return True
         return "codex" in normalized_model
@@ -137,6 +141,8 @@ class Client:
         """Attempts to fulfill the request using the Responses API."""
         try:
             formatted_input = self._format_responses_messages(messages)
+            
+            # Note: reasoning_effort usually applies to reasoning models which we are routing via chat completions for now.
             api_response = self.client.responses.create(
                 model=model_name,
                 input=formatted_input
@@ -171,56 +177,67 @@ class Client:
     def _generate_via_chat_completions(self, model_name: str, messages: List[Dict[str, str]]) -> Dict[str, Any]:
         """Fallback to the legacy Chat Completions endpoint."""
         log.debug(f"Sending request to OpenAI/compatible model: {model_name}")
-        # Log request details (optional)
-        # for i, req in enumerate(messages_to_send):
-        #      log.debug(f"OpenAI REQ {i}: Role={req.get('role')} Content='{req.get('content', '')[:100]}...'")
+        
+        is_reasoning = self._is_reasoning_model(model_name)
+
+        # Prepare parameters
+        params = {
+            "model": model_name,
+            "messages": messages,
+        }
+        
+        # Apply reasoning_effort (thinking level) if applicable
+        if is_reasoning:
+            params["reasoning_effort"] = self.config.thinking_level
+            # Reasoning models typically use max_completion_tokens
+            params["max_completion_tokens"] = 65536 # High default for reasoning
+            log.debug(f"Applied reasoning_effort='{self.config.thinking_level}' and max_completion_tokens for {model_name}")
+        else:
+            # Standard models
+            params["temperature"] = 0.7 # Default
+            # params["max_tokens"] = 4096 # Can be set if needed
 
         try:
             # Ensure client is valid
             assert self.client is not None
-            api_response = self.client.chat.completions.create(
-                model=model_name,
-                messages=messages
-                # Add other parameters like temperature, max_tokens if needed from config
-                # temperature=config.get_llm_argument('temperature', 0.7), # Example
-                # max_tokens=config.get_llm_argument('max_tokens_out', 4096) # Example
-            )
+            api_response = self.client.chat.completions.create(**params)
+            
             log.debug(f"OpenAI raw response object: {api_response}")
 
             if not api_response.choices:
                  log.error("OpenAI response contained no choices.")
-                 # Check usage or system_fingerprint for clues if needed
                  return {"role": "error", "content": "OpenAI returned no choices.", "finish_reason": "error"}
 
             choice = api_response.choices[0]
-            # Safely access attributes, providing defaults
             response_role = getattr(choice.message, 'role', 'assistant')
             response_content = getattr(choice.message, 'content', None)
+            
+            # Handle refusal (sometimes present in recent API versions)
+            if hasattr(choice.message, 'refusal') and choice.message.refusal:
+                log.warning(f"Model refusal: {choice.message.refusal}")
+                return {"role": "error", "content": f"Model Refusal: {choice.message.refusal}", "finish_reason": "refusal"}
+
             if response_content is None:
                  log.warning("OpenAI response message content is None.")
-                 response_content = "" # Default to empty string
+                 response_content = ""
 
             finish_reason = getattr(choice, 'finish_reason', 'unknown')
-
             log.debug(f"OpenAI finish reason: {finish_reason}")
 
-            # Handle specific finish reasons
             if finish_reason == "content_filter":
                  log.error("OpenAI response stopped due to content filter.")
                  return {"role": "error", "content": "Blocked by OpenAI Content Filter", "finish_reason": "content_filter"}
             elif finish_reason == "length":
-                 log.warning("OpenAI response truncated due to length limit (max_tokens or context window).")
-                 # Return truncated content, core logic should be aware via finish_reason
+                 log.warning("OpenAI response truncated due to length limit.")
 
             return {
                 "role": response_role,
                 "content": response_content,
-                "finish_reason": finish_reason # Return OpenAI's reason directly
+                "finish_reason": finish_reason
             }
         except (AuthenticationError, NotFoundError, RateLimitError, APIStatusError, APIConnectionError) as e:
             return self._handle_openai_exception(e, model_name)
         except Exception as e:
-            # Catch unexpected errors
             log.error(f"Unexpected error during OpenAI generation: {e}")
             import traceback
             log.debug(traceback.format_exc())
@@ -340,6 +357,3 @@ class Client:
         import traceback
         log.debug(traceback.format_exc())
         return {"role": "error", "content": f"Unexpected Error: {exception}", "finish_reason": "error"}
-
-# Ensure constants is imported if used within the module
-# from .. import constants # Already imported

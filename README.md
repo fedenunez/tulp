@@ -1,6 +1,6 @@
-# TULP: TULP Understands Language Promptly (v2.8.0)
+# TULP: TULP Understands Language Promptly (v2.10.0)
 
-TULP is a command-line tool inspired by POSIX utilities, designed to help you **process**, **filter**, and **create** data in the realm of Artificial Intelligence. It interfaces with various AI APIs (OpenAI, Groq, Ollama, Anthropic, Gemini) allowing you to leverage powerful language models directly from your shell.
+TULP is a command-line tool inspired by POSIX utilities, designed to help you **process**, **filter**, and **create** data using AI. It interfaces with various AI APIs (OpenAI, Anthropic, Google Gemini, Groq, Ollama) allowing you to leverage powerful language models directly from your shell.
 
 Pipe standard input content to TULP, provide instructions in natural language, and receive the processed output on standard output, just like familiar tools (`sed`, `awk`, `grep`, `jq`).
 
@@ -8,16 +8,16 @@ Pipe standard input content to TULP, provide instructions in natural language, a
 
 ## Installation
 
-To install TULP using pip:
 ```bash
 pip install tulp
 ```
-To upgrade to the latest version:
+
+To upgrade:
 ```bash
 pip install --upgrade tulp
 ```
 
-**Note:** TULP installs the SDKs for the major providers it supports (`openai`, `google-generativeai`, `anthropic`, `groq`, `ollama`). We require `openai>=1.40.0` so you can use the newest GPT-o and Codex models. If you see dependency errors, upgrade pip first: `pip install --upgrade pip`.
+**Note:** TULP installs SDKs for all supported providers (`openai`, `google-genai`, `anthropic`, `groq`, `ollama`). If you see dependency errors, upgrade pip first: `pip install --upgrade pip`.
 
 ## Usage
 
@@ -57,53 +57,43 @@ cat complex_data.json | tulp --model claude-3-opus-20240229 "Analyze this data s
 
 ### Options
 
-```text
-usage: tulp [-h] [-x] [-w FILE] [--model MODEL_NAME] [--max-chars NUM] [--cont N] [--inspect-dir DIR] [-v | -q] [--groq_api_key GROQ_API_KEY]
-            [--ollama_host OLLAMA_HOST] [--anthropic_api_key ANTHROPIC_API_KEY] [--openai_api_key OPENAI_API_KEY] [--openai_baseurl OPENAI_BASEURL]
-            [--gemini_api_key GEMINI_API_KEY]
-            ...
+```
+$ tulp -h
+TULP v2.10.0 - Process, filter, and create data using AI models.
 
-TULP v2.8.0 - TULP Understands Language Promptly:
-A command-line tool, in the best essence of POSIX tooling, that helps you to **process**, **filter**, and **create** data using AI models.
-
-Tulp supports different backends and models, automatically selected based on the model name.
-Currently supported model patterns:
-   - (gpt-|chatgpt-|openai\.).* : Any OpenAI model (https://platform.openai.com/docs/models) or compatible API (e.g., local Ollama with base URL). Requires API key (openai_api_key). Use 'openai.<MODEL_ID>' for unlisted models.
-   - groq\..* : Any Groq model id using the prefix 'groq.', requires GROQ_API_KEY. Check available models at https://console.groq.com/docs/models
-   - ollama\..* : Any Ollama model prefixed with 'ollama.', requires Ollama service running (check --ollama_host).
-   - claude-.* : Any Anthropic Claude model (https://docs.anthropic.com/claude/docs/models-overview), requires ANTHROPIC_API_KEY
-   - gemini.* : Any Google Gemini model (https://ai.google.dev/gemini-api/docs/models/gemini), requires GEMINI_API_KEY
-
-
-positional arguments:
-  request               User's request or processing instructions in natural language. Reads from stdin if processing piped data.
+usage: tulp [-h] [-V] [-x] [-w FILE] [-m MODEL] [-t LEVEL] [--max-chars N]
+            [--cont N] [--inspect-dir DIR] [-v | -q] [--groq-api-key KEY]
+            [--ollama-host KEY] [--anthropic-api-key KEY] [--openai-api-key KEY]
+            [--openai-baseurl KEY] [--gemini-api-key KEY] [REQUEST ...]
 
 options:
-  -h, --help            show this help message and exit
-  -x, --execute         Allow Tulp to generate and execute Python code to fulfill the request (Code Interpreter mode).
-  -w FILE, --write FILE
-                        Write the main output (<|||stdout|||>) to FILE. Creates backups (.backup-N) if FILE exists.
-  --model MODEL_NAME    Select the AI model to use (e.g., gpt-5-mini, claude-3-opus-20240229, groq.llama3-70b-8192). (Config/Env: TULP_MODEL, default: gpt-5-mini)
-  --max-chars NUM       Max characters per LLM request chunk when processing large stdin. (Config/Env: TULP_MAX_CHARS, default: 1000000)
-  --cont N              Automatically ask the model to continue N times if the response seems incomplete (missing <|||end|||>). (Config/Env: TULP_CONT, default: 0)
-  --inspect-dir DIR     Save LLM request/response messages to timestamped subdirectories in DIR for debugging. (Config/Env: TULP_INSPECT_DIR)
-  -v, --verbose         Enable verbose logging (DEBUG level). Overrides -q, config, and env. (Config/Env: TULP_LOG_LEVEL=DEBUG)
-  -q, --quiet           Enable quiet logging (ERROR level). Overrides config and env. (Config/Env: TULP_LOG_LEVEL=ERROR)
+  -h, --help             show this help message and exit
+  -V, --version          show program's version number and exit
+  -x, --execute          Generate and execute Python code (Code Interpreter mode)
+  -w, --write FILE       Write output to FILE (creates backups if exists)
+  -m, --model MODEL      AI model to use (default: gpt-5-mini)
+  -t, --thinking-level   Reasoning effort: low, medium, high (default: low)
+  --max-chars N          Max chars per chunk for large inputs (default: 1000000)
+  --cont N               Auto-continue N times if response incomplete
+  --inspect-dir DIR      Save request/response JSON to DIR for debugging
+  -v, --verbose          Verbose output (DEBUG level)
+  -q, --quiet            Quiet output (ERROR level only)
 
-LLM Provider Arguments:
-  --groq_api_key GROQ_API_KEY
-                        Groq Cloud API Key (Config/Env: TULP_GROQ_API_KEY)
-  --ollama_host OLLAMA_HOST
-                        Ollama host URL (e.g., http://127.0.0.1:11434) (Config/Env: TULP_OLLAMA_HOST)
-  --anthropic_api_key ANTHROPIC_API_KEY
-                        Anthropic API key (Config/Env: TULP_ANTHROPIC_API_KEY)
-  --openai_api_key OPENAI_API_KEY
-                        OpenAI (or compatible) API Key (Config/Env: TULP_OPENAI_API_KEY)
-  --openai_baseurl OPENAI_BASEURL
-                        Override OpenAI API base URL (e.g., for local models like Ollama: http://localhost:11434/v1) (Config/Env: TULP_OPENAI_BASEURL)
-  --gemini_api_key GEMINI_API_KEY
-                        Google AI (Gemini) API Key (Config/Env: TULP_GEMINI_API_KEY)
+API Keys (also settable via env vars or ~/.tulp.conf):
+  --openai-api-key       OpenAI API Key [env: TULP_OPENAI_API_KEY]
+  --anthropic-api-key    Anthropic API key [env: TULP_ANTHROPIC_API_KEY]
+  --gemini-api-key       Google Gemini API Key [env: TULP_GEMINI_API_KEY]
+  --groq-api-key         Groq Cloud API Key [env: TULP_GROQ_API_KEY]
+  --ollama-host          Ollama host URL [env: TULP_OLLAMA_HOST]
 
+Supported Models:
+  OpenAI      gpt-*, chatgpt-*, o1-*, o3-*, codex-*    Requires OPENAI_API_KEY
+  Anthropic   claude-*                                  Requires ANTHROPIC_API_KEY
+  Google      gemini-*                                  Requires GEMINI_API_KEY
+  Groq        groq.<model-id>                           Requires GROQ_API_KEY
+  Ollama      ollama.<model-name>                       Requires Ollama running
+
+Examples: gpt-4o, gpt-5-mini, o3-mini, claude-3-opus, gemini-2.5-flash
 ```
 
 ## Configuration
@@ -246,7 +236,13 @@ TULP stands for "TULP Understands Language Promptly". It's a recursive acronym, 
 
 ## Changelog (Summary)
 
-### v2.8.0 | Unreleased
+### v2.10.0 | 2025-01-20
+- **Gemini SDK migration:** Switched from deprecated `google-generativeai` to new `google-genai` SDK.
+- **Thinking/reasoning support:** Added `-t, --thinking-level` option (`low`, `medium`, `high`) for models with extended reasoning (OpenAI o1/o3, Anthropic Claude, Gemini 2.5+/3.x).
+- **Improved CLI:** Cleaner help output, added `-V/--version`, `-m` shortcut for model, `-t` for thinking level.
+- **Dependency updates:** Requires `google-genai>=1.50.0`, `ollama>=0.4.0`.
+
+### v2.8.0 | 2025
 - **OpenAI models:** Added support for GPT-o and Codex responses, so the newest assistants work with a single `tulp` command.
 - **Default model:** Switched to `gpt-5-mini` for stronger reasoning out of the box.
 
