@@ -1,22 +1,22 @@
 # tulp/llms/LlmOpenAI.py
-import sys
+import re
 from typing import List, Dict, Any, Optional, Tuple
 from ..logger import log
 from ..config import TulpConfig
 from .. import constants
 
-# Conditional import for openai
-try:
-    from openai import OpenAI, APIConnectionError, APIStatusError, RateLimitError, AuthenticationError, NotFoundError
-    OPENAI_AVAILABLE = True
-except ImportError:
-    OpenAI = None
-    APIConnectionError = None
-    APIStatusError = None
-    RateLimitError = None
-    AuthenticationError = None
-    NotFoundError = None
-    OPENAI_AVAILABLE = False
+from .sdk import is_installed
+
+# The SDK is imported on first Client() (see llms/sdk.py); these names are bound then.
+OPENAI_AVAILABLE = is_installed("openai")
+OpenAI = APIConnectionError = APIStatusError = RateLimitError = AuthenticationError = NotFoundError = None
+
+
+def _import_sdk():
+    """Imports the openai SDK into this module's globals (once)."""
+    global OpenAI, APIConnectionError, APIStatusError, RateLimitError, AuthenticationError, NotFoundError  # pylint: disable=global-statement
+    if OpenAI is None:
+        from openai import OpenAI, APIConnectionError, APIStatusError, RateLimitError, AuthenticationError, NotFoundError  # pylint: disable=import-outside-toplevel,redefined-outer-name
     # Warning logged during Client init or getModels/getArguments
 
 
@@ -30,7 +30,7 @@ def getModels() -> List[Dict[str, str]]:
     return [
         {
             "idRe": r"(gpt-|chatgpt-|codex-|o[13]-|openai\.).*",
-            "description": "Any OpenAI model (https://platform.openai.com/docs/models) or compatible API (e.g., local Ollama with base URL). Requires API key (openai_api_key). Use 'openai.<MODEL_ID>' for unlisted models.",
+            "description": "Any OpenAI model (e.g. gpt-6-luna, gpt-6.1-sol, gpt-6-astra; https://developers.openai.com/api/docs/models) or compatible API (e.g., local Ollama with base URL). Requires API key (openai_api_key). Use 'openai.<MODEL_ID>' for unlisted models.",
         }
     ]
 
@@ -47,11 +47,13 @@ def getArguments() -> List[Dict[str, Any]]:
 
 class Client:
     """Client for interacting with OpenAI models or compatible APIs."""
+    MODEL_PREFIX = "openai."  # Explicit-provider prefix for ids the gpt-*/o* patterns don't match
     def __init__(self, config: TulpConfig):
         """Initializes the OpenAI client."""
         self.config = config
         if not OPENAI_AVAILABLE:
             raise ImportError("OpenAI library is not installed. Cannot use OpenAI client.")
+        _import_sdk()
 
         api_key = config.get_llm_argument("openai_api_key")
         base_url = config.get_llm_argument("openai_baseurl")
@@ -84,6 +86,10 @@ class Client:
             log.error(f"Failed to initialize OpenAI client: {e}")
             raise ValueError(f"OpenAI client initialization failed: {e}") from e
 
+    def list_models(self) -> List[str]:
+        """Model ids served by the configured endpoint (for --list-models)."""
+        return [m.id for m in self.client.with_options(timeout=constants.LIST_MODELS_TIMEOUT).models.list()]
+
     def _get_model_name(self) -> str:
         """Extracts the actual model name if 'openai.' prefix is used."""
         model_config_name = self.config.model
@@ -94,9 +100,20 @@ class Client:
         # For gpt-* or chatgpt-*, use the name directly
         return model_config_name
 
+    @staticmethod
+    def _gpt_major_version(model_name: str) -> Optional[int]:
+        """Returns N for gpt-N* model names (gpt-5-mini -> 5, gpt-6.1-sol -> 6), else None."""
+        match = re.match(r"gpt-(\d+)", model_name.lower())
+        return int(match.group(1)) if match else None
+
     def _is_reasoning_model(self, model_name: str) -> bool:
-        """Checks if the model is likely an OpenAI reasoning model (e.g., o1, o3)."""
-        return model_name.startswith(("o1", "o3"))
+        """Checks if the model is an OpenAI reasoning model: o-series and GPT-5+ (gpt-5.x, gpt-6.x)."""
+        normalized_model = model_name.lower()
+        if re.match(r"o\d", normalized_model):
+            return True
+        major = self._gpt_major_version(normalized_model)
+        # gpt-5-chat-* are the non-reasoning chat variants
+        return major is not None and major >= 5 and "-chat" not in normalized_model
 
     def generate(self, messages: List[Dict[str, str]]) -> Dict[str, Any]:
         """Generates a response from the OpenAI/compatible model."""
@@ -111,7 +128,7 @@ class Client:
             result = self._generate_via_responses(model_name, messages_to_send)
             if result is not None:
                 return result
-            log.info("Falling back to Chat Completions endpoint for model '%s'.", model_name)
+            log.info(f"Falling back to Chat Completions endpoint for model '{model_name}'.")
 
         return self._generate_via_chat_completions(model_name, messages_to_send)
 
@@ -129,11 +146,10 @@ class Client:
             if "api.openai.com" not in base_url.lower():
                 return normalized_model.startswith("codex")
 
-        # Prefer responses API for official OpenAI endpoints and new model families (codex, o-series, gpt-4.1+, gpt-5+)
-        # Note: As of early 2025/2026, reasoning models (o1/o3) use chat completions with specific params
-        # or a beta responses API. Sticking to Chat Completions for o1/o3 for now to ensure param support.
-        response_only_prefixes = ("gpt-4.1", "gpt-4.2", "gpt-5")
-        if normalized_model.startswith(response_only_prefixes):
+        # Prefer the Responses API (OpenAI's recommended endpoint) for gpt-4.1+, gpt-5+/gpt-6+ and codex.
+        # o-series models (o3, o4-mini; being retired) stay on Chat Completions with reasoning_effort.
+        major = self._gpt_major_version(normalized_model)
+        if normalized_model.startswith(("gpt-4.1", "gpt-4.2")) or (major is not None and major >= 5):
             return True
         return "codex" in normalized_model
 
@@ -142,15 +158,24 @@ class Client:
         try:
             formatted_input = self._format_responses_messages(messages)
             
-            # Note: reasoning_effort usually applies to reasoning models which we are routing via chat completions for now.
-            api_response = self.client.responses.create(
-                model=model_name,
-                input=formatted_input
-            )
+            params: Dict[str, Any] = {"model": model_name, "input": formatted_input}
+            if self._is_reasoning_model(model_name) and self.config.thinking_level:
+                params["reasoning"] = {"effort": self.config.thinking_level}
+                log.debug(f"Applied reasoning effort '{self.config.thinking_level}' for {model_name}")
+            try:
+                api_response = self.client.responses.create(**params)
+            except APIStatusError as e:
+                # A model that doesn't take this effort level (or reasoning at all): retry with its default.
+                if getattr(e, "status_code", None) == 400 and "reasoning" in params and "reasoning" in str(e).lower():
+                    log.warning(f"Reasoning effort rejected for {model_name} ({e}); retrying with the model default.")
+                    del params["reasoning"]
+                    api_response = self.client.responses.create(**params)
+                else:
+                    raise
             log.debug(f"OpenAI responses raw object: {api_response}")
         except APIStatusError as e:
             if getattr(e, "status_code", None) in (404, 405, 501):
-                log.info("Responses API not available at the configured endpoint (status %s).", getattr(e, "status_code", "unknown"))
+                log.info(f"Responses API not available at the configured endpoint (status {getattr(e, 'status_code', 'unknown')}).")
                 return None
             return self._handle_openai_exception(e, model_name)
         except (AuthenticationError, NotFoundError, RateLimitError, APIConnectionError) as e:

@@ -5,15 +5,18 @@ from ..logger import log
 from ..config import TulpConfig
 from .. import constants
 
-# Conditional import for ollama
-try:
-    from ollama import Client as OllamaApiClient, ResponseError, RequestError # Import specific errors
-    OLLAMA_AVAILABLE = True
-except ImportError:
-    OllamaApiClient = None
-    ResponseError = None
-    RequestError = None
-    OLLAMA_AVAILABLE = False
+from .sdk import is_installed
+
+# The SDK is imported on first Client() (see llms/sdk.py); these names are bound then.
+OLLAMA_AVAILABLE = is_installed("ollama")
+OllamaApiClient = ResponseError = RequestError = None
+
+
+def _import_sdk():
+    """Imports the ollama SDK into this module's globals (once)."""
+    global OllamaApiClient, ResponseError, RequestError  # pylint: disable=global-statement
+    if OllamaApiClient is None:
+        from ollama import Client as OllamaApiClient, ResponseError, RequestError  # pylint: disable=import-outside-toplevel,redefined-outer-name
     # Warning logged during Client init or getModels/getArguments
 
 
@@ -37,11 +40,13 @@ def getArguments() -> List[Dict[str, Any]]:
 
 class Client:
     """Client for interacting with local Ollama models."""
+    MODEL_PREFIX = "ollama."
     def __init__(self, config: TulpConfig):
         """Initializes the Ollama client."""
         self.config = config
         if not OLLAMA_AVAILABLE:
             raise ImportError("Ollama library is not installed. Cannot use Ollama client.")
+        _import_sdk()
 
         ollama_host = config.get_llm_argument("ollama_host") # Already has default handling via config
         if not ollama_host:
@@ -57,13 +62,17 @@ class Client:
             log.debug(f"Testing connection to Ollama host: {ollama_host}")
             self.client.list() # This will raise RequestError if connection fails
             log.info(f"Ollama client initialized and connected to: {ollama_host}")
-        except RequestError as e:
-             log.error(f"Failed to connect to Ollama host '{ollama_host}'. Is the Ollama service running and accessible? Error: {e}")
-             # Raise a standard ConnectionError for cli.py to catch
-             raise ConnectionError(f"Could not connect to Ollama at {ollama_host}") from e
+        except (RequestError, ConnectionError) as e:  # ollama>=0.5 raises the builtin ConnectionError
+             log.debug(f"Failed to connect to Ollama host '{ollama_host}': {e}")
+             # Raise a standard ConnectionError for cli.py to catch (it logs it)
+             raise ConnectionError(f"Could not connect to Ollama at {ollama_host}. Is the Ollama service running and accessible?") from e
         except Exception as e:
             log.error(f"Failed to initialize Ollama client: {e}")
             raise ValueError(f"Ollama client initialization failed: {e}") from e
+
+    def list_models(self) -> List[str]:
+        """Models pulled into the local Ollama (for --list-models)."""
+        return [m.model for m in self.client.list().models]
 
     def _get_model_name(self) -> str:
         """Extracts the actual model name from the configured name (strips 'ollama.')."""

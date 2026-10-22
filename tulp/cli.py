@@ -76,6 +76,11 @@ def run():
         config = get_config()
         log.debug(f"Running tulp v{version.VERSION} with model: {config.model}")
 
+        if args.list_models:
+            from . import model_lister  # pylint: disable=import-outside-toplevel
+            exit_code = model_lister.list_models(args.list_models, config)
+            return
+
         # 3. Initialize LLM Client (Can raise errors)
         # Pass the initialized config object
         llm_client = llms.get_model_client(config.model, config)

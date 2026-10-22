@@ -1,25 +1,29 @@
 # tulp/llms/LlmAnthropic.py
-import sys
+import re
 from typing import List, Dict, Any, Tuple, Optional
 from ..logger import log
 from ..config import TulpConfig
 from .. import constants
 
-# Conditional import
-try:
-    import anthropic
-    ANTHROPIC_AVAILABLE = True
-except ImportError:
-    anthropic = None
-    ANTHROPIC_AVAILABLE = False
-    # Warning logged when getModels or getArguments is called, or during Client init
+from .sdk import is_installed
+
+# The SDK is imported on first Client() (see llms/sdk.py); `anthropic` is bound then.
+ANTHROPIC_AVAILABLE = is_installed("anthropic")
+anthropic = None
+
+
+def _import_sdk():
+    """Imports the anthropic SDK into this module's globals (once)."""
+    global anthropic  # pylint: disable=global-statement
+    if anthropic is None:
+        import anthropic  # pylint: disable=import-outside-toplevel,redefined-outer-name
 
 def getModels() -> List[Dict[str, str]]:
    """Returns model definitions for Anthropic."""
    if not ANTHROPIC_AVAILABLE:
         return []
    # Use raw string r"" for regex patterns
-   return [ { "idRe": r"claude-.*", "description": "Any Anthropic Claude model (https://docs.anthropic.com/claude/docs/models-overview), requires ANTHROPIC_API_KEY"} ]
+   return [ { "idRe": r"claude-.*", "description": "Any Anthropic Claude model (e.g. claude-opus-5-5, claude-sonnet-5-5; https://platform.claude.com/docs/en/about-claude/models/overview), requires ANTHROPIC_API_KEY"} ]
 
 def getArguments() -> List[Dict[str, Any]]:
    """Returns argument definitions specific to Anthropic."""
@@ -30,11 +34,14 @@ def getArguments() -> List[Dict[str, Any]]:
 
 class Client:
     """Client for interacting with Anthropic's Claude models."""
+    MAX_TOKENS = 64000  # Adaptive-thinking models: shared by thinking and output; streaming keeps it clear of HTTP timeouts
+    LEGACY_MAX_TOKENS = 4096  # Older models (some cap output at 4096); budget_tokens is added on top when thinking
     def __init__(self, config: TulpConfig):
         """Initializes the Anthropic client."""
         self.config = config
         if not ANTHROPIC_AVAILABLE:
              raise ImportError("Anthropic library is not installed. Cannot use Anthropic client.")
+        _import_sdk()
 
         api_key = config.get_llm_argument("anthropic_api_key")
         if not api_key:
@@ -48,6 +55,10 @@ class Client:
         except Exception as e:
             log.error(f"Failed to initialize Anthropic client: {e}")
             raise
+
+    def list_models(self) -> List[str]:
+        """Model ids available to this API key (for --list-models)."""
+        return [m.id for m in self.client.with_options(timeout=constants.LIST_MODELS_TIMEOUT).models.list()]
 
     def _convert_messages(self, messages: List[Dict[str, str]]) -> Tuple[List[Dict[str, str]], Optional[str]]:
         """
@@ -98,133 +109,119 @@ class Client:
 
         return anthropic_messages, system_prompt
 
-    def _get_thinking_config(self, thinking_level: str) -> Optional[Dict[str, Any]]:
-        """
-        Maps thinking level to Anthropic thinking configuration (budget_tokens).
-        Returns None if mapping isn't appropriate or for models that don't support it (handled by caller).
-        
-        Note: Currently assumes using the 'thinking' parameter which is standard for Sonnet 3.5/3.7 thinking modes.
-        'effort' parameter is cleaner but currently beta/opus-only.
-        """
-        # Heuristic mapping for budget tokens
-        # Must be careful: max_tokens must be > budget_tokens
-        if thinking_level == "low":
-            return {"type": "enabled", "budget_tokens": 2048}
-        elif thinking_level == "medium":
-            return {"type": "enabled", "budget_tokens": 4096}
-        elif thinking_level == "high":
-            return {"type": "enabled", "budget_tokens": 16000} # Requires very high max_tokens
+    # Claude 4.6+ (and every 5.x, Fable, Mythos) uses adaptive thinking with an effort level;
+    # Opus 4.7+ / 5.x / Fable reject budget_tokens with a 400. Older models use budget_tokens.
+    _ADAPTIVE_MODEL_RE = re.compile(r"claude-(fable|mythos)\b|claude-(opus|sonnet|haiku)-(\d+)(?:-(\d{1,2}))?(?:-\d{8})?$")
+
+    @classmethod
+    def _uses_adaptive_thinking(cls, model_name: str) -> bool:
+        """True for models that take thinking={type: adaptive} + output_config.effort."""
+        match = cls._ADAPTIVE_MODEL_RE.match(model_name)
+        if not match:
+            return False  # e.g. claude-3-7-sonnet-*, claude-3-opus-*: legacy naming, legacy thinking
+        if match.group(1):
+            return True
+        major, minor = int(match.group(3)), int(match.group(4) or 0)
+        return (major, minor) >= (4, 6)
+
+    @staticmethod
+    def _get_budget_thinking_config(thinking_level: str) -> Optional[Dict[str, Any]]:
+        """Maps thinking level to the legacy budget_tokens configuration (pre-4.6 models)."""
+        budgets = {"low": 2048, "medium": 4096, "high": 16000}
+        if thinking_level in budgets:
+            return {"type": "enabled", "budget_tokens": budgets[thinking_level]}
         return None
+
+    def _build_request(self, anthropic_messages: List[Dict[str, str]], system_prompt: Optional[str]) -> Dict[str, Any]:
+        """Builds the messages.stream() kwargs. Never sets temperature/top_p/top_k (rejected by the API)."""
+        model_name = self.config.model
+        kwargs: Dict[str, Any] = {
+            "model": model_name,
+            "messages": anthropic_messages,
+            "max_tokens": self.LEGACY_MAX_TOKENS,
+        }
+        if system_prompt:
+            kwargs["system"] = system_prompt
+
+        thinking_level = self.config.thinking_level
+        if self._uses_adaptive_thinking(model_name):
+            # Explicit: on Opus 4.7/4.8 omitting `thinking` means no thinking at all.
+            kwargs["thinking"] = {"type": "adaptive"}
+            kwargs["max_tokens"] = self.MAX_TOKENS
+            if thinking_level:
+                kwargs["output_config"] = {"effort": thinking_level}
+        elif thinking_level:
+            budget_config = self._get_budget_thinking_config(thinking_level)
+            if budget_config:
+                kwargs["thinking"] = budget_config
+                kwargs["max_tokens"] = budget_config["budget_tokens"] + self.LEGACY_MAX_TOKENS
+        log.debug(f"Anthropic thinking: {kwargs.get('thinking')}, output_config: {kwargs.get('output_config')}")
+        return kwargs
+
+    def _create(self, kwargs: Dict[str, Any]) -> Any:
+        """Streams the request (large max_tokens needs streaming) and returns the final message."""
+        with self.client.messages.stream(**kwargs) as stream:
+            return stream.get_final_message()
+
+    @staticmethod
+    def _parse_response(api_response: Any) -> Dict[str, Any]:
+        """Converts an Anthropic Message into tulp's response dict."""
+        log.debug(f"Anthropic raw response: {api_response}")
+        stop_reason = getattr(api_response, 'stop_reason', None) or 'unknown'
+        if stop_reason == "refusal":
+            details = getattr(api_response, 'stop_details', None)
+            explanation = getattr(details, 'explanation', None) or getattr(details, 'category', None) or "no details"
+            log.error(f"Anthropic model refused the request: {explanation}")
+            return {"role": "error", "content": f"Model Refusal: {explanation}", "finish_reason": "refusal"}
+
+        response_content = "".join(
+            getattr(block, 'text', '') for block in (api_response.content or [])
+            if getattr(block, 'type', None) == 'text'
+        )
+        finish_reason = {"end_turn": "stop", "max_tokens": "length"}.get(stop_reason, stop_reason)
+        if finish_reason == "length":
+            log.warning("Anthropic response truncated due to length limit (max_tokens).")
+        return {
+            "role": getattr(api_response, 'role', 'assistant'),
+            "content": response_content,
+            "finish_reason": finish_reason,
+        }
 
     def generate(self, messages: List[Dict[str, str]]) -> Dict[str, Any]:
         """Generates a response from the Anthropic model."""
         if not ANTHROPIC_AVAILABLE:
-             return {"role": "error", "content": "Anthropic library not installed.", "finish_reason": "error"}
+            return {"role": "error", "content": "Anthropic library not installed.", "finish_reason": "error"}
 
         anthropic_messages, system_prompt = self._convert_messages(messages)
-
         if not anthropic_messages:
-             return {"role": "error", "content": "Message list for Anthropic is empty or invalid.", "finish_reason": "error"}
+            return {"role": "error", "content": "Message list for Anthropic is empty or invalid.", "finish_reason": "error"}
 
-        # Determine thinking config
-        thinking_config = None
-        max_tokens = 4096 # Default
-        
-        # Check if thinking is requested via level (default is low, so always check unless 'none'?)
-        # User might not want thinking for all models. We should only enable if model supports it?
-        # For now, we only apply if the user explicitly set it via arg or config, 
-        # but defaulting to 'low' means it might apply broadly.
-        # We need a safeguard. Let's apply it if the model name suggests capability or we assume modern Claude.
-        # However, applying thinking to models that don't support it might error.
-        # Safe strategy: Only apply if model name contains specific keywords or just try/catch?
-        # Anthropic docs say thinking is a specific parameter.
-        
-        # NOTE: For now, I will NOT enable thinking by default unless model is known to support it 
-        # or if I can detect it. Since 'claude-3-7' or similar is likely target.
-        # But if the user passed --thinking-level, they expect it.
-        # Let's map the level. 
-        
-        # To avoid breaking older models, we might check if 'sonnet' or 'opus' is in name
-        # OR simply trust the API to ignore or error (and we handle error).
-        # Actually, let's just set the token budget based on level.
-        
-        # Adjust max_tokens to accommodate thinking
-        if self.config.thinking_level:
-             thinking_config = self._get_thinking_config(self.config.thinking_level)
-             if thinking_config:
-                 # Ensure max_tokens is higher than budget
-                 budget = thinking_config["budget_tokens"]
-                 # Set max_tokens to budget + reasonable output buffer (e.g. 4096)
-                 max_tokens = max(max_tokens, budget + 4096)
-                 # Cap at some reasonable limit for API (e.g. 64k or 128k supported by Anthropic)
-                 max_tokens = min(max_tokens, 64000) 
-                 log.debug(f"Enabled Anthropic thinking: {thinking_config}, adjusted max_tokens: {max_tokens}")
-
+        kwargs = self._build_request(anthropic_messages, system_prompt)
+        assert anthropic is not None
         try:
             log.debug(f"Sending request to Anthropic model: {self.config.model}")
-            assert anthropic is not None
-            
-            # Prepare kwargs
-            kwargs = {
-                "model": self.config.model,
-                "messages": anthropic_messages,
-                "system": system_prompt,
-                "max_tokens": max_tokens
-            }
-            
-            # Add thinking if configured
-            if thinking_config:
-                kwargs["thinking"] = thinking_config
-
-            api_response = self.client.messages.create(**kwargs)
-            log.debug(f"Anthropic raw response: {api_response}")
-
-            response_role = getattr(api_response, 'role', 'assistant')
-            response_content = ""
-            if api_response.content and isinstance(api_response.content, list):
-                 for block in api_response.content:
-                      if getattr(block, 'type', None) == 'text':
-                           response_content = getattr(block, 'text', '')
-                           break 
-
-            finish_reason = getattr(api_response, 'stop_reason', 'unknown')
-            mapped_reason = finish_reason
-            if finish_reason == "end_turn":
-                 mapped_reason = "stop"
-            elif finish_reason == "max_tokens":
-                 mapped_reason = "length"
-
-            return {
-                "role": response_role,
-                "content": response_content,
-                "finish_reason": mapped_reason
-            }
+            return self._parse_response(self._create(kwargs))
         except anthropic.BadRequestError as e:
-            # Handle case where thinking might not be supported by the specific model
-            if "thinking" in str(e) or "budget_tokens" in str(e):
-                log.warning(f"Thinking parameter failed (model might not support it): {e}. Retrying without thinking.")
-                if "thinking" in kwargs:
-                    del kwargs["thinking"]
-                    try:
-                        api_response = self.client.messages.create(**kwargs)
-                        # Process response as above... (simplified duplication for now)
-                        response_role = getattr(api_response, 'role', 'assistant')
-                        response_content = ""
-                        for block in api_response.content:
-                            if getattr(block, 'type', None) == 'text':
-                                response_content = getattr(block, 'text', '')
-                                break
-                        return {"role": response_role, "content": response_content, "finish_reason": "stop"}
-                    except Exception as retry_e:
-                        return {"role": "error", "content": f"Retry failed: {retry_e}", "finish_reason": "error"}
-            
+            # Models without thinking support (e.g. Claude 3 Opus/Haiku): retry without it.
+            if "thinking" in kwargs and ("thinking" in str(e) or "budget_tokens" in str(e) or "effort" in str(e)):
+                log.warning(f"Thinking parameters rejected (model might not support them): {e}. Retrying without thinking.")
+                kwargs.pop("thinking", None)
+                kwargs.pop("output_config", None)
+                kwargs["max_tokens"] = self.LEGACY_MAX_TOKENS
+                try:
+                    return self._parse_response(self._create(kwargs))
+                except anthropic.APIError as retry_e:
+                    log.error(f"Anthropic retry without thinking failed: {retry_e}")
+                    return {"role": "error", "content": f"Retry failed: {retry_e}", "finish_reason": "error"}
             log.error(f"Anthropic Bad Request: {e}")
             return {"role": "error", "content": f"Anthropic Bad Request: {e.message}", "finish_reason": "error"}
-
         except anthropic.APIStatusError as e:
             log.error(f"Anthropic API status error: {e.status_code} - {e.message}")
             return {"role": "error", "content": f"Anthropic API Error ({e.status_code}): {e.message}", "finish_reason": "error"}
-        except Exception as e:
+        except anthropic.APIConnectionError as e:
+            log.error(f"Anthropic API connection error: {e}")
+            return {"role": "error", "content": f"Anthropic Connection Error: {e}", "finish_reason": "error"}
+        except Exception as e:  # pylint: disable=broad-except
             log.error(f"Unexpected error during Anthropic generation: {e}")
             import traceback
             log.debug(traceback.format_exc())

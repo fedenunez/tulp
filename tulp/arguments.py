@@ -22,13 +22,23 @@ def _validate_model_type(arg_value):
 # Human-readable model descriptions (instead of ugly regex)
 MODEL_HELP = """
 Supported Models:
-  OpenAI      gpt-*, chatgpt-*, o1-*, o3-*, codex-*    Requires OPENAI_API_KEY
-  Anthropic   claude-*                                  Requires ANTHROPIC_API_KEY
-  Google      gemini-*                                  Requires GEMINI_API_KEY
-  Groq        groq.<model-id>                           Requires GROQ_API_KEY
-  Ollama      ollama.<model-name>                       Requires Ollama running
+  OpenAI      gpt-*, codex-*, o1-*, o3-*, openai.<id>    OPENAI_API_KEY
+              e.g. gpt-6-luna, gpt-6.1-sol, gpt-6-astra
+  Anthropic   claude-*                                   ANTHROPIC_API_KEY
+              e.g. claude-opus-5-5, claude-sonnet-5-5, claude-haiku-5-5
+  Google      gemini-*                                   GEMINI_API_KEY
+              e.g. gemini-4-argon, gemini-3.8-flash, gemini-3.5-flash-lite
+  DeepSeek    deepseek-*                                 DEEPSEEK_API_KEY
+              e.g. deepseek-v4-pro, deepseek-flash
+  Z.ai        glm-*, zai.<id>                            ZAI_API_KEY
+              e.g. glm-5.3, glm-4.7
+  Groq        groq.<id>                                  GROQ_API_KEY
+              e.g. groq.openai/gpt-oss-120b, groq.llama-3.3-70b-versatile
+  Ollama      ollama.<name>                              Ollama running
+              e.g. ollama.gpt-oss, ollama.qwen3 (any pulled model)
 
-Examples: gpt-4o, gpt-5-mini, o3-mini, claude-3-opus, gemini-2.5-flash
+Thinking (-t low|medium|high) sets each provider's reasoning effort (Z.ai only
+turns thinking on). Requires Python 3.10+.
 """
 
 
@@ -98,6 +108,11 @@ class TulpArgs:
         parser.add_argument(
             '--cont', type=int, metavar='N',
             help='Auto-continue N times if response incomplete'
+        )
+        parser.add_argument(
+            '--list-models', nargs='?', const='all', metavar='PROVIDER',
+            help='List the models each configured provider currently offers and exit; '
+                 'optionally only PROVIDER (openai, anthropic, gemini, deepseek, zai, groq, ollama)'
         )
         parser.add_argument(
             '--inspect-dir', type=str, metavar='DIR',

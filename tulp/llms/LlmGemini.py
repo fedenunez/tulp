@@ -1,19 +1,25 @@
 # tulp/llms/LlmGemini.py
-import sys
+from __future__ import annotations
+import re
 from typing import List, Dict, Any, Optional
 from ..logger import log
 from ..config import TulpConfig
 from .. import constants
 
-# Conditional import for google-genai (new SDK)
-try:
-    from google import genai
-    from google.genai import types
-    GEMINI_AVAILABLE = True
-except ImportError:
-    genai = None
-    types = None
-    GEMINI_AVAILABLE = False
+from .sdk import is_installed
+
+# The SDK is imported on first Client() (see llms/sdk.py); `genai`/`types` are bound then
+# (annotations using `types` are lazy thanks to `from __future__ import annotations`).
+GEMINI_AVAILABLE = is_installed("google.genai")
+genai = types = None
+
+
+def _import_sdk():
+    """Imports the google-genai SDK into this module's globals (once)."""
+    global genai, types  # pylint: disable=global-statement
+    if genai is None:
+        from google import genai  # pylint: disable=import-outside-toplevel,redefined-outer-name
+        from google.genai import types  # pylint: disable=import-outside-toplevel,redefined-outer-name
     # Warning logged during Client init or getModels/getArguments
 
 DEFAULT_TEMPERATURE = 1.0
@@ -29,7 +35,7 @@ def getModels() -> List[Dict[str, str]]:
         return []
     return [{
         "idRe": r"gemini.*",
-        "description": "Any Google Gemini model (https://ai.google.dev/gemini-api/docs/models/gemini), requires GEMINI_API_KEY"
+        "description": "Any Google Gemini model (e.g. gemini-4-argon, gemini-3.8-flash; https://ai.google.dev/gemini-api/docs/models), requires GEMINI_API_KEY"
     }]
 
 
@@ -48,6 +54,7 @@ class Client:
         self.config = config
         if not GEMINI_AVAILABLE:
             raise ImportError("Google GenAI library (google-genai) is not installed. Install with: pip install google-genai")
+        _import_sdk()
 
         api_key = config.get_llm_argument("gemini_api_key")
         if not api_key:
@@ -63,6 +70,12 @@ class Client:
         except Exception as e:
             log.error(f"Failed to initialize Gemini client: {e}")
             raise ValueError(f"Gemini client initialization failed: {e}") from e
+
+    def list_models(self) -> List[str]:
+        """Text-generation model ids available to this API key (for --list-models)."""
+        pager = self.client.models.list(config={"http_options": {"timeout": constants.LIST_MODELS_TIMEOUT * 1000}})
+        return [m.name.removeprefix("models/") for m in pager
+                if not m.supported_actions or "generateContent" in m.supported_actions]
 
     def _convert_messages(self, messages: List[Dict[str, str]]) -> List[types.Content]:
         """Converts OpenAI message format to Gemini's Content format."""
@@ -111,15 +124,17 @@ class Client:
             log.warning("Gemini doesn't allow conversation history to end with 'model' role. Appending placeholder.")
             gemini_contents.append(types.Content(
                 role='user',
-                parts=[types.Part.from_text("(Continue)")]
+                parts=[types.Part.from_text(text="(Continue)")]
             ))
 
         return gemini_contents
 
     def _is_thinking_model(self) -> bool:
-        """Check if the model supports thinking (Gemini 2.5+ or 3.x)."""
-        model_lower = self.config.model.lower()
-        return "2.5" in model_lower or "gemini-3" in model_lower
+        """Check if the model supports thinking: Gemini 2.5+ (3.x, 4.x, ...)."""
+        match = re.match(r"gemini-(\d+(?:\.\d+)?)", self.config.model.lower())
+        if not match:
+            return True  # Unversioned aliases (e.g. gemini-flash-latest) are current models; retry handles errors
+        return float(match.group(1)) >= 2.5
 
     def _get_thinking_level(self) -> Optional[str]:
         """Maps config thinking level to Gemini thinking level string."""
@@ -127,9 +142,7 @@ class Client:
             log.debug(f"Model {self.config.model} does not support thinking")
             return None
 
-        # Gemini 3 uses thinking_level: 'minimal', 'low', 'medium', 'high'
-        # Gemini 2.5 uses thinking_budget (tokens)
-        # We'll use thinking_level for simplicity as it's the newer approach
+        # thinking_level is accepted by Gemini 2.5, 3.x and 4.x; low/medium/high work on all text models
         level = self.config.thinking_level
         if level in ('low', 'medium', 'high'):
             return level

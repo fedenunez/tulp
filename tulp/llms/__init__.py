@@ -62,6 +62,10 @@ _load_modules() # Load modules when this package is imported
 
 # --- Public API ---
 
+def get_modules() -> List[Any]:
+    """Returns the loaded LLM provider modules."""
+    return list(_llm_modules)
+
 def get_arguments_definitions() -> List[Dict[str, Any]]:
     """
     Gets a list of argument definitions from all loaded LLM modules.
@@ -156,7 +160,7 @@ def get_model_client(model_name: str, config: 'TulpConfig') -> 'LlmClientType':
     Instantiates and returns the LLM Client class from the appropriate module.
 
     Args:
-        model_name: The name of the model (e.g., "gpt-4o", "groq.llama3-70b-8192").
+        model_name: The name of the model (e.g., "gpt-6-luna", "groq.llama-3.3-70b-versatile").
         config: The TulpConfig object containing necessary configurations (API keys, etc.).
 
     Returns:

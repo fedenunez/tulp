@@ -18,7 +18,7 @@ build: venv
 	$(PYTHON) setup.py sdist bdist_wheel || $(PYTHON) setup.py sdist
 
 test: venv
-	$(PYTHON) -m pytest -v -s ./test/test_filterMode_basic.py ./test/test_filterMode_advanced.py ./test/test_requestMode.py
+	$(PYTHON) -m pytest -v -s ./test/test_filterMode_basic.py ./test/test_filterMode_advanced.py ./test/test_requestMode.py ./test/test_providers.py
 
 test-request: venv
 	$(PYTHON) -m pytest -v -s ./test/test_requestMode*.py

@@ -5,16 +5,18 @@ from ..logger import log
 from ..config import TulpConfig
 from .. import constants
 
-# Conditional import for groq
-try:
-    from groq import Groq, APIConnectionError, APIStatusError, RateLimitError
-    GROQ_AVAILABLE = True
-except ImportError:
-    Groq = None
-    APIConnectionError = None
-    APIStatusError = None
-    RateLimitError = None
-    GROQ_AVAILABLE = False
+from .sdk import is_installed
+
+# The SDK is imported on first Client() (see llms/sdk.py); these names are bound then.
+GROQ_AVAILABLE = is_installed("groq")
+Groq = APIConnectionError = APIStatusError = RateLimitError = None
+
+
+def _import_sdk():
+    """Imports the groq SDK into this module's globals (once)."""
+    global Groq, APIConnectionError, APIStatusError, RateLimitError  # pylint: disable=global-statement
+    if Groq is None:
+        from groq import Groq, APIConnectionError, APIStatusError, RateLimitError  # pylint: disable=import-outside-toplevel,redefined-outer-name
     # Warning logged during Client init or getModels/getArguments
 
 def getModels() -> List[Dict[str, str]]:
@@ -24,7 +26,7 @@ def getModels() -> List[Dict[str, str]]:
         log.warning("Install it with: pip install groq")
         return []
    # Use raw string for regex
-   return [ { "idRe": r"groq\..*", "description": "Any Groq model id using the prefix 'groq.', requires GROQ_API_KEY. Check available models at https://console.groq.com/docs/models" }]
+   return [ { "idRe": r"groq\..*", "description": "Any Groq model id using the prefix 'groq.' (e.g. groq.openai/gpt-oss-120b, groq.llama-3.3-70b-versatile), requires GROQ_API_KEY. Check available models at https://console.groq.com/docs/models" }]
 
 def getArguments() -> List[Dict[str, Any]]:
    """Returns argument definitions specific to Groq."""
@@ -35,11 +37,13 @@ def getArguments() -> List[Dict[str, Any]]:
 
 class Client:
     """Client for interacting with Groq's language models."""
+    MODEL_PREFIX = "groq."
     def __init__(self, config: TulpConfig):
         """Initializes the Groq client."""
         self.config = config
         if not GROQ_AVAILABLE:
             raise ImportError("Groq library is not installed. Cannot use Groq client.")
+        _import_sdk()
 
         api_key = config.get_llm_argument("groq_api_key")
         if not api_key:
@@ -58,6 +62,10 @@ class Client:
             log.error(f"Failed to initialize Groq client: {e}")
             # Add specific error checks if Groq client raises unique exceptions on init
             raise ValueError(f"Groq client initialization failed: {e}") from e
+
+    def list_models(self) -> List[str]:
+        """Model ids served by Groq (for --list-models)."""
+        return [m.id for m in self.client.with_options(timeout=constants.LIST_MODELS_TIMEOUT).models.list().data]
 
     def _get_model_name(self) -> str:
         """Extracts the actual model name from the configured name (strips 'groq.')."""
@@ -135,6 +143,9 @@ class Client:
                 "finish_reason": finish_reason # Return Groq's reason directly
             }
         # Catch specific Groq/OpenAI-like errors
+        except RateLimitError as e: # Catch separately if needed
+            log.error(f"Groq API rate limit exceeded: {e}")
+            return {"role": "error", "content": "Groq Rate Limit Exceeded", "finish_reason": "rate_limit"}
         except APIStatusError as e:
             log.error(f"Groq API status error: {e.status_code} - {getattr(e, 'message', str(e))}")
             content = f"Groq API Error ({e.status_code}): {getattr(e, 'message', str(e))}"
@@ -142,9 +153,6 @@ class Client:
             elif e.status_code == 404: content = f"Groq Model '{model_name}' not found ({e.status_code})."
             elif e.status_code == 429: content = f"Groq Rate Limit Exceeded ({e.status_code})."
             return {"role": "error", "content": content, "finish_reason": "error"}
-        except RateLimitError as e: # Catch separately if needed
-            log.error(f"Groq API rate limit exceeded: {e}")
-            return {"role": "error", "content": "Groq Rate Limit Exceeded", "finish_reason": "rate_limit"}
         except APIConnectionError as e:
             log.error(f"Groq API connection error: {e}")
             return {"role": "error", "content": f"Groq Connection Error: {e}", "finish_reason": "error"}

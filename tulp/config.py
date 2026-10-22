@@ -26,13 +26,38 @@ class TulpConfig:
              # Or raise RuntimeError("TulpConfig must be initialized with args first.")
         return cls._instance
 
+    @staticmethod
+    def _new_parser() -> configparser.ConfigParser:
+        """
+        INI parser without interpolation; strict=False so a repeated key (last value wins)
+        doesn't make the whole file unreadable.
+        """
+        return configparser.ConfigParser(interpolation=None, strict=False)
+
+    def _warn_duplicate_keys(self, lines):
+        """Logs (debug) keys set more than once in a section: the last value wins. Names only, never values."""
+        seen = {}
+        section = None
+        for number, line in enumerate(lines, 1):
+            section_match = SECTION_RE.match(line)
+            if section_match:
+                section = line.strip()
+                continue
+            key_match = re.match(r"\s*([^#;\s=:][^=:]*?)\s*[=:]", line)
+            if key_match:
+                seen.setdefault((section, key_match.group(1).lower()), []).append(number)
+        for (section, key), numbers in seen.items():
+            if len(numbers) > 1:
+                log.debug(f"'{key.upper()}' is set {len(numbers)} times in {section} of {self.config_file_path}; "
+                          f"using the last one.")
+
     def _initialize(self, args):
         """Initializes the configuration instance."""
         if self._initialized:
             return
         self._initialized = True
 
-        self.config = configparser.ConfigParser(interpolation=None) # Disable interpolation for simplicity
+        self.config = self._new_parser()
         self.config_file_path = os.path.expanduser(constants.DEFAULT_CONFIG_FILE_PATH)
         config_string_to_parse = ""
 
@@ -52,7 +77,8 @@ class TulpConfig:
 
                     if valid_lines:
                         config_string_to_parse = "".join(valid_lines)
-                        log.debug(f"Pre-processed config content before parsing:\n{config_string_to_parse[:500]}...") # Log preview
+                        # Never log the content: it holds API keys.
+                        self._warn_duplicate_keys(valid_lines)
                         self.config.read_string(config_string_to_parse)
                         log.debug(f"Successfully parsed configuration from: {self.config_file_path}")
                     else:
@@ -63,13 +89,13 @@ class TulpConfig:
         except configparser.Error as e:
             log.error(f"Error parsing configuration content from '{self.config_file_path}': {e}. Using defaults.")
             # Reset config object to ensure clean state after parsing error
-            self.config = configparser.ConfigParser(interpolation=None)
+            self.config = self._new_parser()
         except IOError as e:
              log.error(f"Error reading configuration file '{self.config_file_path}': {e}. Using defaults.")
-             self.config = configparser.ConfigParser(interpolation=None)
+             self.config = self._new_parser()
         except Exception as e:
             log.error(f"Unexpected error processing configuration file '{self.config_file_path}': {e}. Using defaults.")
-            self.config = configparser.ConfigParser(interpolation=None)
+            self.config = self._new_parser()
 
 
         # --- Continue with loading settings as before ---

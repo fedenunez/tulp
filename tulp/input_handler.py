@@ -49,7 +49,7 @@ requiring an overall view of the document (like summarization) may perform poorl
 
 You can adjust the chunk size via the --max-chars argument or the
 TULP_MAX_CHARS environment variable. Using a model with a larger context
-window (like gpt-4-turbo or claude-3 models) might also improve results for
+window (like gpt-6-astra, claude-opus-5-5 or gemini-4-argon, all 1M+ tokens) might also improve results for
 context-dependent tasks.
 """
     log.warning(warnMsg)

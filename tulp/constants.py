@@ -54,9 +54,10 @@ VALID_RESPONSE_BLOCK_NAMES = [
 DEFAULT_CONFIG_FILE_PATH = "~/.tulp.conf"
 DEFAULT_LOG_LEVEL = "INFO"
 DEFAULT_MAX_CHARS = 1000000
-DEFAULT_MODEL = "gpt-5-mini" # Default model setting
+DEFAULT_MODEL = "gpt-6-luna" # Default model setting (gpt-5-mini snapshots retire 2026-12-11)
 DEFAULT_CONTINUATION_RETRIES = 0 # Default for --cont
 DEFAULT_THINKING_LEVEL = "low" # Default reasoning effort for supported models
+LIST_MODELS_TIMEOUT = 20 # Seconds per provider for --list-models requests
 
 # --- Environment Variable Prefix ---
 ENV_VAR_PREFIX = "TULP_"
